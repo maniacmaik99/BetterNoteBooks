@@ -4,7 +4,6 @@ import {
 	Stroke,
 	PageImage,
 	BoundingBox,
-	StrokeStyle,
 	GeometricShape,
 	ShapeHandle,
 	LassoSelectionMode,

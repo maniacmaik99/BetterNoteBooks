@@ -76,9 +76,12 @@ export class DrawingView extends TextFileView {
 	private activeMenuClosedAt = 0;
 	private currentOpenMenu: Menu | null = null;
 
-	// Active tool style
 	private currentStyle: StrokeStyle;
 	private colorButtonsContainerEl: HTMLElement | null = null;
+	private colorSliderViewportEl: HTMLElement | null = null;
+	private colorPrevBtn: HTMLButtonElement | null = null;
+	private colorNextBtn: HTMLButtonElement | null = null;
+	private isColorDragging = false;
 
 	constructor(leaf: WorkspaceLeaf, plugin: BetterNotebookPlugin) {
 		super(leaf);
@@ -500,13 +503,46 @@ export class DrawingView extends TextFileView {
 			this.toggleLassoPopover(lassoBtn);
 		});
 
-		// Colors Group (Expandable Color Palette)
+		// Colors Group (Horizontal Scrollable Carousel / Slider)
 		const colorsGroup = this.toolbarEl.createDiv({
 			cls: 'betternotebook-toolbar-group colors',
 		});
-		this.colorButtonsContainerEl = colorsGroup.createDiv({
+
+		this.colorPrevBtn = colorsGroup.createEl('button', {
+			cls: 'betternotebook-color-nav-btn prev is-disabled',
+			title: 'Farben zurück',
+		});
+		this.colorPrevBtn.type = 'button';
+		setIcon(this.colorPrevBtn, 'chevron-left');
+
+		this.colorSliderViewportEl = colorsGroup.createDiv({
+			cls: 'betternotebook-color-slider-viewport',
+		});
+
+		this.colorButtonsContainerEl = this.colorSliderViewportEl.createDiv({
 			cls: 'betternotebook-color-palette-inner',
 		});
+
+		this.colorNextBtn = colorsGroup.createEl('button', {
+			cls: 'betternotebook-color-nav-btn next',
+			title: 'Weitere Farben',
+		});
+		this.colorNextBtn.type = 'button';
+		setIcon(this.colorNextBtn, 'chevron-right');
+
+		colorsGroup.createDiv({ cls: 'betternotebook-color-nav-divider' });
+
+		const addColorBtn = colorsGroup.createEl('button', {
+			cls: 'betternotebook-add-color-btn',
+			title: 'Farbe hinzufügen (Palette / Hex / Pipette)',
+		});
+		addColorBtn.type = 'button';
+		setIcon(addColorBtn, 'plus');
+		addColorBtn.addEventListener('click', () => {
+			this.openColorPickerModal();
+		});
+
+		this.setupColorSliderInteraction();
 		this.renderColorPalette();
 
 		// Dynamic Size Slots Group (Stroke / Eraser)
@@ -813,8 +849,112 @@ export class DrawingView extends TextFileView {
 	}
 
 	// ----------------------------------------------------
-	// Expandable Color Palette
+	// Expandable Horizontal Color Carousel / Slider
 	// ----------------------------------------------------
+
+	private setupColorSliderInteraction(): void {
+		if (!this.colorSliderViewportEl) return;
+		const vp = this.colorSliderViewportEl;
+
+		// 1. Mouse wheel horizontal scrolling
+		vp.addEventListener(
+			'wheel',
+			(e: WheelEvent) => {
+				if (e.deltaY !== 0 || e.deltaX !== 0) {
+					e.preventDefault();
+					vp.scrollLeft += e.deltaY !== 0 ? e.deltaY : e.deltaX;
+					this.updateColorSliderNavState();
+				}
+			},
+			{ passive: false },
+		);
+
+		// 2. Viewport scroll event for nav button updating
+		vp.addEventListener(
+			'scroll',
+			() => {
+				this.updateColorSliderNavState();
+			},
+			{ passive: true },
+		);
+
+		// 3. Nav chevron buttons
+		this.colorPrevBtn?.addEventListener('click', (e) => {
+			e.stopPropagation();
+			vp.scrollBy({ left: -64, behavior: 'smooth' });
+		});
+
+		this.colorNextBtn?.addEventListener('click', (e) => {
+			e.stopPropagation();
+			vp.scrollBy({ left: 64, behavior: 'smooth' });
+		});
+
+		// 4. Pointer dragging for touch / stylus / mouse swiping
+		let isDown = false;
+		let startX = 0;
+		let startScrollLeft = 0;
+
+		vp.addEventListener('pointerdown', (e: PointerEvent) => {
+			isDown = true;
+			startX = e.clientX;
+			startScrollLeft = vp.scrollLeft;
+			this.isColorDragging = false;
+		});
+
+		window.addEventListener('pointermove', (e: PointerEvent) => {
+			if (!isDown) return;
+			const dx = e.clientX - startX;
+			if (Math.abs(dx) > 4) {
+				this.isColorDragging = true;
+				vp.scrollLeft = startScrollLeft - dx;
+			}
+		});
+
+		const stopDrag = () => {
+			if (isDown) {
+				isDown = false;
+				window.setTimeout(() => {
+					this.isColorDragging = false;
+				}, 50);
+			}
+		};
+		window.addEventListener('pointerup', stopDrag);
+		window.addEventListener('pointercancel', stopDrag);
+	}
+
+	private updateColorSliderNavState(): void {
+		if (!this.colorSliderViewportEl) return;
+		const vp = this.colorSliderViewportEl;
+		const canScrollLeft = vp.scrollLeft > 2;
+		const canScrollRight = vp.scrollLeft + vp.clientWidth < vp.scrollWidth - 2;
+		this.colorPrevBtn?.toggleClass('is-disabled', !canScrollLeft);
+		this.colorNextBtn?.toggleClass('is-disabled', !canScrollRight);
+	}
+
+	private openColorPickerModal(): void {
+		new ColorPickerModal(
+			this.plugin.app,
+			this.currentStyle.color,
+			(selectedHex: string) => {
+				void (async () => {
+					this.currentStyle.color = selectedHex;
+					this.pageCanvases.forEach((pc) => pc.setStyle({ color: selectedHex }));
+
+					if (
+						!this.plugin.settings.customColors.some(
+							(c) => c.toLowerCase() === selectedHex.toLowerCase(),
+						)
+					) {
+						this.plugin.settings.customColors.push(selectedHex);
+						await this.plugin.saveSettings();
+					}
+					this.renderColorPalette();
+					this.renderSizeSlots();
+					new Notice(`Farbe ${selectedHex} zur Palette hinzugefügt`);
+				})();
+			},
+		).open();
+	}
 
 	private renderColorPalette(): void {
 		if (!this.colorButtonsContainerEl) return;
@@ -832,6 +972,7 @@ export class DrawingView extends TextFileView {
 			colorBtn.style.backgroundColor = hex;
 
 			colorBtn.addEventListener('click', () => {
+				if (this.isColorDragging) return;
 				this.currentStyle.color = hex;
 				this.pageCanvases.forEach((pc) => pc.setStyle({ color: hex }));
 				this.renderColorPalette();
@@ -859,38 +1000,19 @@ export class DrawingView extends TextFileView {
 			});
 		});
 
-		// Add custom color button (+)
-		const addColorBtn = this.colorButtonsContainerEl.createEl('button', {
-			cls: 'betternotebook-add-color-btn',
-			title: 'Farbe hinzufügen (Palette / Hex / Pipette)',
-		});
-		addColorBtn.type = 'button';
-		setIcon(addColorBtn, 'plus');
+		// Refresh navigation buttons state
+		this.updateColorSliderNavState();
 
-		addColorBtn.addEventListener('click', () => {
-			new ColorPickerModal(
-				this.plugin.app,
-				this.currentStyle.color,
-				(selectedHex: string) => {
-					void (async () => {
-						this.currentStyle.color = selectedHex;
-						this.pageCanvases.forEach((pc) => pc.setStyle({ color: selectedHex }));
-
-						if (
-							!this.plugin.settings.customColors.some(
-								(c) => c.toLowerCase() === selectedHex.toLowerCase(),
-							)
-						) {
-							this.plugin.settings.customColors.push(selectedHex);
-							await this.plugin.saveSettings();
-						}
-						this.renderColorPalette();
-						this.renderSizeSlots();
-						new Notice(`Farbe ${selectedHex} zur Palette hinzugefügt`);
-					})();
-				},
-			).open();
-		});
+		// Auto-scroll active color into view
+		const activeBtn = this.colorButtonsContainerEl.querySelector<HTMLElement>('.is-active');
+		if (activeBtn && this.colorSliderViewportEl) {
+			const vp = this.colorSliderViewportEl;
+			const btnLeft = activeBtn.offsetLeft;
+			const btnWidth = activeBtn.offsetWidth;
+			const vpWidth = vp.clientWidth;
+			const targetScrollLeft = btnLeft - (vpWidth - btnWidth) / 2;
+			vp.scrollTo({ left: Math.max(0, targetScrollLeft), behavior: 'smooth' });
+		}
 	}
 
 	private renderAllPages(): void {

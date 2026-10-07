@@ -126,11 +126,99 @@
 	background-color: var(--interactive-accent);
 }
 
-/* Color Palette */
+/* Color Palette & Horizontal Slider Viewport */
+.betternotebook-toolbar-group.colors {
+	gap: 4px;
+	height: 36px;
+	align-items: center;
+}
+
+.betternotebook-color-slider-viewport {
+	width: 148px;
+	max-width: 154px;
+	height: 36px;
+	max-height: 36px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scroll-behavior: smooth;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	display: flex;
+	align-items: center;
+	padding: 0 6px;
+	box-sizing: border-box;
+	cursor: grab;
+	touch-action: pan-x;
+	user-select: none;
+}
+
+.betternotebook-color-slider-viewport::-webkit-scrollbar {
+	display: none;
+}
+
+.betternotebook-color-slider-viewport:active {
+	cursor: grabbing;
+}
+
 .betternotebook-color-palette-inner {
 	display: flex;
 	align-items: center;
-	gap: 7px;
+	gap: 8px;
+	height: 100%;
+	padding: 0 2px;
+	flex-shrink: 0;
+}
+
+.betternotebook-toolbar button.betternotebook-color-nav-btn,
+button.betternotebook-color-nav-btn {
+	-webkit-appearance: none;
+	appearance: none;
+	background: transparent !important;
+	background-color: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	outline: none !important;
+	cursor: pointer;
+	padding: 0 !important;
+	margin: 0 !important;
+	width: 18px;
+	min-width: 18px;
+	height: 28px;
+	min-height: 28px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+	flex-shrink: 0;
+}
+
+.betternotebook-toolbar button.betternotebook-color-nav-btn:hover:not(.is-disabled),
+button.betternotebook-color-nav-btn:hover:not(.is-disabled) {
+	background-color: var(--background-modifier-hover) !important;
+	color: var(--text-normal);
+}
+
+.betternotebook-toolbar button.betternotebook-color-nav-btn.is-disabled,
+button.betternotebook-color-nav-btn.is-disabled {
+	opacity: 0.18;
+	pointer-events: none;
+	cursor: default;
+}
+
+.betternotebook-toolbar button.betternotebook-color-nav-btn svg,
+button.betternotebook-color-nav-btn svg {
+	width: 14px;
+	height: 14px;
+	display: block;
+}
+
+.betternotebook-color-nav-divider {
+	width: 1px;
+	height: 18px;
+	background-color: var(--background-modifier-border);
+	margin: 0 3px;
 	flex-shrink: 0;
 }
 
@@ -141,39 +229,40 @@ button.betternotebook-color-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 24px;
-	height: 24px;
-	min-width: 24px;
-	min-height: 24px;
-	max-width: 24px;
-	max-height: 24px;
+	width: 22px;
+	height: 22px;
+	min-width: 22px;
+	min-height: 22px;
+	max-width: 22px;
+	max-height: 22px;
 	padding: 0;
 	margin: 0;
 	aspect-ratio: 1 / 1;
 	border-radius: 50%;
-	border: 2px solid var(--background-primary);
+	border: 2px solid var(--background-secondary);
 	outline: none;
 	cursor: pointer;
 	flex-shrink: 0;
 	align-self: center;
 	box-sizing: border-box;
 	box-shadow: 0 0 0 1px var(--background-modifier-border);
-	transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
+	transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, border-color 0.15s ease;
 	line-height: 1;
-	overflow: hidden;
+	position: relative;
 }
 
 .betternotebook-toolbar button.betternotebook-color-btn:hover,
 button.betternotebook-color-btn:hover {
-	transform: scale(1.14);
-	box-shadow: 0 0 0 1.5px var(--interactive-accent);
+	transform: scale(1.08);
+	box-shadow: 0 0 0 1px var(--background-modifier-border), 0 0 0 2px var(--interactive-accent);
 }
 
 .betternotebook-toolbar button.betternotebook-color-btn.is-active,
 button.betternotebook-color-btn.is-active {
-	transform: scale(1.18);
-	box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--interactive-accent);
-	z-index: 1;
+	transform: scale(1.05);
+	border: 2px solid var(--background-secondary);
+	box-shadow: 0 0 0 1px var(--background-secondary), 0 0 0 3px var(--interactive-accent);
+	z-index: 2;
 }
 
 .betternotebook-toolbar button.betternotebook-add-color-btn,
@@ -183,18 +272,20 @@ button.betternotebook-add-color-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 24px;
-	height: 24px;
-	min-width: 24px;
-	min-height: 24px;
-	max-width: 24px;
-	max-height: 24px;
+	width: 22px;
+	height: 22px;
+	min-width: 22px;
+	min-height: 22px;
+	max-width: 22px;
+	max-height: 22px;
 	padding: 0;
 	margin: 0;
 	aspect-ratio: 1 / 1;
 	border-radius: 50%;
 	border: 1.5px dashed var(--interactive-accent);
-	background: transparent;
+	background: transparent !important;
+	background-color: transparent !important;
+	box-shadow: none !important;
 	color: var(--interactive-accent);
 	cursor: pointer;
 	outline: none;
@@ -207,14 +298,14 @@ button.betternotebook-add-color-btn {
 
 .betternotebook-toolbar button.betternotebook-add-color-btn:hover,
 button.betternotebook-add-color-btn:hover {
-	background-color: var(--background-modifier-hover);
-	transform: scale(1.14);
+	background-color: var(--background-modifier-hover) !important;
+	transform: scale(1.08);
 }
 
 .betternotebook-toolbar button.betternotebook-add-color-btn svg,
 button.betternotebook-add-color-btn svg {
-	width: 13px;
-	height: 13px;
+	width: 12px;
+	height: 12px;
 	display: block;
 }
 

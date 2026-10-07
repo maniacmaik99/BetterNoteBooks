@@ -17,6 +17,10 @@ main.js
 
 # obsidian
 data.json
+*.bnp
+*.bnp.json
+Notebooks/
+notebooks/
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
