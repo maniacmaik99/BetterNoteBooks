@@ -767,6 +767,36 @@ button.betternotebook-add-color-btn svg {
 	border-radius: 3px;
 }
 
+.betternotebook-shape-handle.handle-edge-t,
+.betternotebook-shape-handle.handle-edge-b {
+	cursor: ns-resize;
+	width: 18px;
+	height: 10px;
+	border-radius: 4px;
+}
+
+.betternotebook-shape-handle.handle-edge-l,
+.betternotebook-shape-handle.handle-edge-r {
+	cursor: ew-resize;
+	width: 10px;
+	height: 18px;
+	border-radius: 4px;
+}
+
+.betternotebook-shape-handle.handle-edge-t:hover,
+.betternotebook-shape-handle.handle-edge-b:hover,
+.betternotebook-shape-handle.handle-edge-t.is-dragging,
+.betternotebook-shape-handle.handle-edge-b.is-dragging {
+	cursor: ns-resize;
+}
+
+.betternotebook-shape-handle.handle-edge-l:hover,
+.betternotebook-shape-handle.handle-edge-r:hover,
+.betternotebook-shape-handle.handle-edge-l.is-dragging,
+.betternotebook-shape-handle.handle-edge-r.is-dragging {
+	cursor: ew-resize;
+}
+
 .betternotebook-shape-handle.role-radius {
 	border-color: #8b5cf6;
 	background-color: #f5f3ff;
@@ -965,6 +995,50 @@ button.betternotebook-add-color-btn svg {
 	background-color: var(--interactive-accent);
 }
 
+.betternotebook-shape-lock-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 9;
+}
+
+.betternotebook-shape-lock-badge {
+	position: absolute;
+	width: 24px;
+	height: 24px;
+	background-color: rgba(15, 23, 42, 0.85);
+	color: #ffffff;
+	border: 1.5px solid var(--interactive-accent);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+	z-index: 10;
+	pointer-events: none;
+	touch-action: none;
+	opacity: 0;
+	transform: translate(-50%, -50%) scale(0.8);
+	transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+}
+
+.betternotebook-shape-lock-badge.is-visible {
+	opacity: 0.92;
+	pointer-events: auto;
+	transform: translate(-50%, -50%) scale(1);
+}
+
+.betternotebook-shape-lock-badge:hover {
+	opacity: 1;
+	pointer-events: auto;
+	transform: translate(-50%, -50%) scale(1.15);
+	background-color: var(--interactive-accent);
+}
+
 
 .betternotebook-image-resize-handle {
 	position: absolute;
@@ -1005,7 +1079,8 @@ button.betternotebook-add-color-btn svg {
 .betternotebook-image-crop-btn svg,
 .betternotebook-image-delete-btn svg,
 .betternotebook-image-lock-btn svg,
-.betternotebook-image-lock-badge svg {
+.betternotebook-image-lock-badge svg,
+.betternotebook-shape-lock-badge svg {
 	width: 12px;
 	height: 12px;
 	display: block;

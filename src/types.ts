@@ -57,6 +57,7 @@ export interface GeometricShape {
 	hasFill?: boolean;
 	fillColor?: string;
 	fillOpacity?: number;
+	isLocked?: boolean;
 }
 
 export interface Stroke {
@@ -65,6 +66,7 @@ export interface Stroke {
 	style: StrokeStyle;
 	bbox?: BoundingBox;
 	shape?: GeometricShape;
+	isLocked?: boolean;
 }
 
 export interface PageImage {

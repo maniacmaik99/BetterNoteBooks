@@ -301,6 +301,19 @@ export function recognizeShape(points: Point[]): GeometricShape | null {
 			role: 'corner',
 		}));
 
+		if (finalCorners.length === 4) {
+			const c0 = finalCorners[0]!;
+			const c1 = finalCorners[1]!;
+			const c2 = finalCorners[2]!;
+			const c3 = finalCorners[3]!;
+			handles.push(
+				{ id: 'h_edge_t', x: (c0.x + c1.x) / 2, y: (c0.y + c1.y) / 2, role: 'mid' },
+				{ id: 'h_edge_r', x: (c1.x + c2.x) / 2, y: (c1.y + c2.y) / 2, role: 'mid' },
+				{ id: 'h_edge_b', x: (c2.x + c3.x) / 2, y: (c2.y + c3.y) / 2, role: 'mid' },
+				{ id: 'h_edge_l', x: (c3.x + c0.x) / 2, y: (c3.y + c0.y) / 2, role: 'mid' },
+			);
+		}
+
 		return {
 			type: 'rectangle',
 			handles,

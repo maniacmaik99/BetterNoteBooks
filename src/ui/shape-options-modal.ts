@@ -171,7 +171,23 @@ export class ShapeOptionsModal extends Modal {
 			renderFillControls();
 		}
 
-		// 6. Form löschen (Danger Action)
+		// 6. Position sperren (Fixieren)
+		new Setting(contentEl)
+			.setName('Position sperren (Fixieren)')
+			.setDesc('Fixiert die Form gegen Verschieben und erlaubt ungestörtes Beschreiben.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.stroke.isLocked ?? false)
+					.onChange((val) => {
+						this.stroke.isLocked = val;
+						if (this.stroke.shape) {
+							this.stroke.shape.isLocked = val;
+						}
+						this.onUpdate();
+					}),
+			);
+
+		// 7. Form löschen (Danger Action)
 		const actionContainer = contentEl.createDiv({
 			cls: 'betternotebook-shape-modal-actions',
 		});

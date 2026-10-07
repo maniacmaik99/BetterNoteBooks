@@ -42,6 +42,7 @@ export class PageCanvas {
 	private pageLabelEl: HTMLElement;
 	private imageOverlayEl: HTMLElement;
 	private shapeOverlayEl: HTMLElement;
+	private shapeLockOverlayEl: HTMLElement;
 	private events: PageCanvasEvents;
 	private app?: App;
 
@@ -156,6 +157,11 @@ export class PageCanvas {
 			cls: 'betternotebook-shape-overlay',
 		});
 
+		// 4b. Shape lock badge overlay
+		this.shapeLockOverlayEl = this.pageEl.createDiv({
+			cls: 'betternotebook-shape-lock-overlay',
+		});
+
 		// 5. Visual eraser cursor overlay
 		this.eraserCursorEl = this.pageEl.createDiv({
 			cls: 'betternotebook-eraser-cursor',
@@ -165,6 +171,7 @@ export class PageCanvas {
 		this.attachEvents();
 		this.renderImages();
 		this.redrawAll();
+		this.renderShapeLockBadges();
 	}
 
 	public setVisibility(visible: boolean): void {
@@ -370,15 +377,65 @@ export class PageCanvas {
 		if (hitShape) {
 			e.preventDefault();
 			e.stopPropagation();
-			this.showShapeHandles(hitShape);
-			this.openShapeOptions(hitShape);
+			const isLocked = !!(hitShape.isLocked || hitShape.shape?.isLocked);
+			const menu = new Menu();
+			menu.addItem((item) =>
+				item
+					.setTitle(
+						isLocked
+							? 'Position entsperren'
+							: 'Position sperren (Fixieren)',
+					)
+					.setIcon(isLocked ? 'unlock' : 'lock')
+					.onClick(() => {
+						const nextLocked = !isLocked;
+						hitShape.isLocked = nextLocked;
+						if (hitShape.shape) hitShape.shape.isLocked = nextLocked;
+						if (nextLocked) {
+							this.clearActiveShape();
+						} else {
+							this.showShapeHandles(hitShape);
+						}
+						this.renderShapeLockBadges();
+						this.redrawAll();
+						this.events.onPageChanged?.(this.page.id);
+						new Notice(
+							nextLocked
+								? 'Form gesperrt (kann jetzt beschrieben werden)'
+								: 'Form entsperrt',
+						);
+					}),
+			);
+			menu.addItem((item) =>
+				item
+					.setTitle('Form anpassen...')
+					.setIcon('sliders')
+					.onClick(() => {
+						this.showShapeHandles(hitShape);
+						this.openShapeOptions(hitShape);
+					}),
+			);
+			menu.addItem((item) =>
+				item
+					.setTitle('Form löschen')
+					.setIcon('trash-2')
+					.onClick(() => {
+						this.deleteShapeStroke(hitShape);
+					}),
+			);
+			menu.showAtMouseEvent(e);
+			return;
 		}
 	};
 
 	private onPointerLeave = (e: PointerEvent): void => {
 		this.updateEraserCursor(0, 0, false);
 		const related = e.relatedTarget as HTMLElement | null;
-		if (related && related.closest('.betternotebook-image-lock-badge')) {
+		if (
+			related &&
+			(related.closest('.betternotebook-image-lock-badge') ||
+				related.closest('.betternotebook-shape-lock-badge'))
+		) {
 			return;
 		}
 		this.hideAllLockBadges();
@@ -432,11 +489,86 @@ export class PageCanvas {
 		}
 	}
 
+	private updateLockedShapeHover(x: number, y: number): void {
+		if (!this.shapeLockOverlayEl) return;
+		const lockBadges = this.shapeLockOverlayEl.querySelectorAll<HTMLElement>(
+			'.betternotebook-shape-lock-badge',
+		);
+		if (lockBadges.length === 0) return;
+
+		for (const badge of Array.from(lockBadges)) {
+			const strokeId = badge.getAttribute('data-stroke-id');
+			const stroke = this.page.strokes.find((s) => s.id === strokeId);
+			if (!stroke?.shape || (!stroke.isLocked && !stroke.shape.isLocked)) {
+				badge.removeClass('is-visible');
+				continue;
+			}
+
+			const bbox = stroke.bbox || computeShapeBoundingBox(stroke.shape, stroke.style.width);
+			const cornerW = Math.max(36, Math.min(72, (bbox.maxX - bbox.minX) * 0.35));
+			const cornerH = Math.max(36, Math.min(72, (bbox.maxY - bbox.minY) * 0.35));
+			const minX = bbox.maxX - cornerW;
+			const maxX = bbox.maxX + 20;
+			const minY = bbox.minY - 20;
+			const maxY = bbox.minY + cornerH;
+
+			const isInside = x >= minX && x <= maxX && y >= minY && y <= maxY;
+			if (isInside) {
+				badge.addClass('is-visible');
+			} else {
+				badge.removeClass('is-visible');
+			}
+		}
+	}
+
 	private hideAllLockBadges(): void {
-		const lockBadges = this.imageOverlayEl.querySelectorAll<HTMLElement>(
-			'.betternotebook-image-lock-badge',
+		const lockBadges = this.pageEl.querySelectorAll<HTMLElement>(
+			'.betternotebook-image-lock-badge, .betternotebook-shape-lock-badge',
 		);
 		lockBadges.forEach((b) => b.removeClass('is-visible'));
+	}
+
+	public renderShapeLockBadges(): void {
+		if (!this.shapeLockOverlayEl) return;
+		this.shapeLockOverlayEl.empty();
+		for (const stroke of this.page.strokes) {
+			if (!stroke.shape || (!stroke.isLocked && !stroke.shape.isLocked)) continue;
+
+			const bbox = stroke.bbox || computeShapeBoundingBox(stroke.shape, stroke.style.width);
+			const badge = this.shapeLockOverlayEl.createDiv({
+				cls: 'betternotebook-shape-lock-badge',
+				title: 'Form gesperrt (Klicken zum Entsperren)',
+				attr: { 'data-stroke-id': stroke.id },
+			});
+			setIcon(badge, 'lock');
+			badge.style.left = `${bbox.maxX}px`;
+			badge.style.top = `${bbox.minY}px`;
+
+			badge.addEventListener('pointerdown', (e) => e.stopPropagation());
+			badge.addEventListener('click', (e) => {
+				e.stopPropagation();
+				stroke.isLocked = false;
+				if (stroke.shape) stroke.shape.isLocked = false;
+				this.renderShapeLockBadges();
+				this.showShapeHandles(stroke);
+				this.redrawAll();
+				this.events.onPageChanged?.(this.page.id);
+				new Notice('Form entsperrt');
+			});
+			badge.addEventListener('pointerleave', (e: PointerEvent) => {
+				const pt = this.getCanvasPoint(e);
+				const cornerW = Math.max(36, Math.min(72, (bbox.maxX - bbox.minX) * 0.35));
+				const cornerH = Math.max(36, Math.min(72, (bbox.maxY - bbox.minY) * 0.35));
+				const isInside =
+					pt.x >= bbox.maxX - cornerW &&
+					pt.x <= bbox.maxX + 20 &&
+					pt.y >= bbox.minY - 20 &&
+					pt.y <= bbox.minY + cornerH;
+				if (!isInside) {
+					badge.removeClass('is-visible');
+				}
+			});
+		}
 	}
 
 	private getCanvasPoint(e: PointerEvent): { x: number; y: number } {
@@ -490,23 +622,35 @@ export class PageCanvas {
 		if (e.button !== 0 && e.pointerType === 'mouse') return;
 		if (this.events.isGestureActive?.()) return;
 
-		// Stylus-Only / Palm Rejection Mode: touch inputs (fingers, palm) never draw!
-		if (this.stylusOnlyMode && e.pointerType === 'touch') {
-			return;
-		}
-
 		// Ensure canvas DPR is razor-sharp before pen touches down
 		this.ensureDprForZoom();
 
 		const { x, y } = this.getCanvasPoint(e);
 		this.lastMovePoint = { x, y };
 
-		// Check if tapping an existing geometric shape (border or inside filled shape)
-		if (this.currentStyle.tool !== 'eraser') {
+		// 1. If a shape is currently selected, check if tapping outside to dismiss it
+		if (this.activeShapeStroke) {
+			const isInsideActive = isPointInsideOrNearShape(this.activeShapeStroke, x, y, 16);
+			if (!isInsideActive) {
+				this.clearActiveShape();
+				// If tapping outside with finger, dismiss handles and return (do not draw)
+				if (e.pointerType === 'touch') {
+					return;
+				}
+			}
+		}
+
+		// 2. Check if tapping an existing unlocked geometric shape or textmarker field (finger touch, mouse, or shape tool)
+		const canSelectShape =
+			e.pointerType === 'touch' ||
+			e.pointerType === 'mouse' ||
+			this.currentStyle.tool === 'shape';
+
+		if (canSelectShape) {
 			const hitShape = this.page.strokes
 				.slice()
 				.reverse()
-				.find((s) => s.shape && isPointInsideOrNearShape(s, x, y, 16));
+				.find((s) => s.shape && !s.isLocked && !s.shape.isLocked && isPointInsideOrNearShape(s, x, y, 16));
 
 			if (hitShape) {
 				if (this.activeShapeStroke?.id === hitShape.id) {
@@ -518,6 +662,11 @@ export class PageCanvas {
 				this.showShapeHandles(hitShape);
 				return;
 			}
+		}
+
+		// 3. Stylus-Only / Palm Rejection Mode: touch inputs (fingers, palm) never draw ink!
+		if (this.stylusOnlyMode && e.pointerType === 'touch') {
+			return;
 		}
 
 		// Deselect images when tapping canvas
@@ -720,6 +869,7 @@ export class PageCanvas {
 
 		if (!this.isDrawing) {
 			this.updateLockedImageHover(x, y);
+			this.updateLockedShapeHover(x, y);
 			return;
 		} else {
 			this.hideAllLockBadges();
@@ -981,9 +1131,7 @@ export class PageCanvas {
 				this.page.strokes.push(this.currentStroke);
 				this.events.onStrokeAdded?.(this.page.id, this.currentStroke);
 
-				if (this.currentStyle.tool !== 'highlighter') {
-					this.showShapeHandles(this.currentStroke);
-				}
+				this.showShapeHandles(this.currentStroke);
 				this.redrawAll();
 			} else {
 				// Normal freehand stroke
@@ -1025,16 +1173,55 @@ export class PageCanvas {
 	// Interactive Shape Handles (GoodNotes Editing)
 	// ----------------------------------------------------
 
+	private ensureRectangleHandles(shape: GeometricShape): void {
+		if (shape.type !== 'rectangle') return;
+		const corners = shape.handles.filter((h) => h.role === 'corner');
+		if (corners.length !== 4) return;
+		const sortedByY = [...corners].sort((a, b) => a.y - b.y);
+		const topTwo = [sortedByY[0]!, sortedByY[1]!].sort((a, b) => a.x - b.x);
+		const bottomTwo = [sortedByY[2]!, sortedByY[3]!].sort((a, b) => a.x - b.x);
+		const cTL = topTwo[0]!;
+		const cTR = topTwo[1]!;
+		const cBL = bottomTwo[0]!;
+		const cBR = bottomTwo[1]!;
+
+		const edgeSpecs = [
+			{ id: 'h_edge_t', x: (cTL.x + cTR.x) / 2, y: (cTL.y + cTR.y) / 2 },
+			{ id: 'h_edge_r', x: (cTR.x + cBR.x) / 2, y: (cTR.y + cBR.y) / 2 },
+			{ id: 'h_edge_b', x: (cBL.x + cBR.x) / 2, y: (cBL.y + cBR.y) / 2 },
+			{ id: 'h_edge_l', x: (cTL.x + cBL.x) / 2, y: (cTL.y + cBL.y) / 2 },
+		];
+
+		for (const spec of edgeSpecs) {
+			let h = shape.handles.find((handle) => handle.id === spec.id);
+			if (!h) {
+				h = { id: spec.id, x: spec.x, y: spec.y, role: 'mid' };
+				shape.handles.push(h);
+			} else {
+				h.x = spec.x;
+				h.y = spec.y;
+			}
+		}
+	}
+
 	public showShapeHandles(stroke: Stroke): void {
 		this.clearActiveShape();
 		if (!stroke.shape) return;
 
 		this.activeShapeStroke = stroke;
 		const shape = stroke.shape;
+		this.ensureRectangleHandles(shape);
 
 		for (const handle of shape.handles) {
+			let extraCls = '';
+			if (shape.type === 'rectangle') {
+				if (handle.id === 'h_edge_t') extraCls = ' handle-edge-t';
+				else if (handle.id === 'h_edge_b') extraCls = ' handle-edge-b';
+				else if (handle.id === 'h_edge_l') extraCls = ' handle-edge-l';
+				else if (handle.id === 'h_edge_r') extraCls = ' handle-edge-r';
+			}
 			const handleEl = this.shapeOverlayEl.createDiv({
-				cls: `betternotebook-shape-handle role-${handle.role}`,
+				cls: `betternotebook-shape-handle role-${handle.role}${extraCls}`,
 				attr: { 'data-handle-id': handle.id },
 			});
 			handleEl.style.left = `${handle.x}px`;
@@ -1047,6 +1234,84 @@ export class PageCanvas {
 				const pt = this.getCanvasPoint(ev as PointerEvent);
 				const nx = Math.max(0, Math.min(this.cssWidth, pt.x));
 				const ny = Math.max(0, Math.min(this.cssHeight, pt.y));
+
+				// 1. Resizing Rectangles (4 edges + 4 corners)
+				if (shape.type === 'rectangle') {
+					const corners = shape.handles.filter((h) => h.role === 'corner');
+					if (corners.length === 4) {
+						const sortedByY = [...corners].sort((a, b) => a.y - b.y);
+						const topTwo = [sortedByY[0]!, sortedByY[1]!].sort((a, b) => a.x - b.x);
+						const bottomTwo = [sortedByY[2]!, sortedByY[3]!].sort((a, b) => a.x - b.x);
+						const cTL = topTwo[0]!;
+						const cTR = topTwo[1]!;
+						const cBL = bottomTwo[0]!;
+						const cBR = bottomTwo[1]!;
+
+						const edgeT = shape.handles.find((h) => h.id === 'h_edge_t');
+						const edgeR = shape.handles.find((h) => h.id === 'h_edge_r');
+						const edgeB = shape.handles.find((h) => h.id === 'h_edge_b');
+						const edgeL = shape.handles.find((h) => h.id === 'h_edge_l');
+
+						if (handle.id === 'h_edge_t') {
+							const clampedY = Math.min(ny, cBL.y - 12);
+							cTL.y = clampedY;
+							cTR.y = clampedY;
+						} else if (handle.id === 'h_edge_b') {
+							const clampedY = Math.max(ny, cTL.y + 12);
+							cBL.y = clampedY;
+							cBR.y = clampedY;
+						} else if (handle.id === 'h_edge_l') {
+							const clampedX = Math.min(nx, cTR.x - 12);
+							cTL.x = clampedX;
+							cBL.x = clampedX;
+						} else if (handle.id === 'h_edge_r') {
+							const clampedX = Math.max(nx, cTL.x + 12);
+							cTR.x = clampedX;
+							cBR.x = clampedX;
+						} else if (handle.id === cTL.id) {
+							cTL.x = Math.min(nx, cTR.x - 12);
+							cTL.y = Math.min(ny, cBL.y - 12);
+							cTR.y = cTL.y;
+							cBL.x = cTL.x;
+						} else if (handle.id === cTR.id) {
+							cTR.x = Math.max(nx, cTL.x + 12);
+							cTR.y = Math.min(ny, cBR.y - 12);
+							cTL.y = cTR.y;
+							cBR.x = cTR.x;
+						} else if (handle.id === cBR.id) {
+							cBR.x = Math.max(nx, cBL.x + 12);
+							cBR.y = Math.max(ny, cTR.y + 12);
+							cTR.x = cBR.x;
+							cBL.y = cBR.y;
+						} else if (handle.id === cBL.id) {
+							cBL.x = Math.min(nx, cBR.x - 12);
+							cBL.y = Math.max(ny, cTL.y + 12);
+							cBR.y = cBL.y;
+							cTL.x = cBL.x;
+						}
+
+						// Update edge midpoints
+						if (edgeT) { edgeT.x = (cTL.x + cTR.x) / 2; edgeT.y = (cTL.y + cTR.y) / 2; }
+						if (edgeR) { edgeR.x = (cTR.x + cBR.x) / 2; edgeR.y = (cTR.y + cBR.y) / 2; }
+						if (edgeB) { edgeB.x = (cBL.x + cBR.x) / 2; edgeB.y = (cBL.y + cBR.y) / 2; }
+						if (edgeL) { edgeL.x = (cTL.x + cBL.x) / 2; edgeL.y = (cTL.y + cBL.y) / 2; }
+
+						// Synchronize all handle element positions
+						for (const h of shape.handles) {
+							const hEl = this.shapeOverlayEl.querySelector(
+								`[data-handle-id="${h.id}"]`,
+							) as HTMLElement;
+							if (hEl) {
+								hEl.style.left = `${h.x}px`;
+								hEl.style.top = `${h.y}px`;
+							}
+						}
+
+						this.updateFloatingBarPosition();
+						this.redrawAll();
+						return;
+					}
+				}
 
 				handle.x = nx;
 				handle.y = ny;
@@ -1204,9 +1469,27 @@ export class PageCanvas {
 			});
 		}
 
+		// 4. Lock Button
+		bar.createDiv({ cls: 'betternotebook-shape-bar-sep' });
+		const lockBtn = bar.createEl('button', {
+			cls: 'betternotebook-shape-bar-btn',
+			title: 'Form sperren (Fixieren - kann danach ungestört beschrieben werden)',
+		});
+		lockBtn.setText('🔒 Sperren');
+		lockBtn.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			stroke.isLocked = true;
+			if (stroke.shape) stroke.shape.isLocked = true;
+			this.clearActiveShape();
+			this.renderShapeLockBadges();
+			this.redrawAll();
+			this.events.onPageChanged?.(this.page.id);
+			new Notice('Form gesperrt (kann jetzt beschrieben werden)');
+		});
+
 		bar.createDiv({ cls: 'betternotebook-shape-bar-sep' });
 
-		// 4. Delete Button
+		// 5. Delete Button
 		const deleteBtn = bar.createEl('button', {
 			cls: 'betternotebook-shape-bar-btn is-danger',
 			title: 'Form löschen',
@@ -1295,6 +1578,10 @@ export class PageCanvas {
 						stroke.style.width,
 					);
 				}
+				if (stroke.isLocked || stroke.shape?.isLocked) {
+					this.clearActiveShape();
+				}
+				this.renderShapeLockBadges();
 				this.redrawAll();
 				this.updateFloatingBarPosition();
 				this.events.onPageChanged?.(this.page.id);
@@ -1313,6 +1600,7 @@ export class PageCanvas {
 
 	public clearStrokes(): void {
 		this.clearActiveShape();
+		if (this.shapeLockOverlayEl) this.shapeLockOverlayEl.empty();
 		this.page.strokes = [];
 		this.redrawAll();
 		this.events.onPageChanged?.(this.page.id);
@@ -1337,6 +1625,10 @@ export class PageCanvas {
 		if (mode === 'stroke') {
 			// Strichradierer: delete entire stroke
 			for (const stroke of this.page.strokes) {
+				if (stroke.isLocked || stroke.shape?.isLocked) {
+					remainingStrokes.push(stroke);
+					continue;
+				}
 				if (isPointNearStroke(stroke, x, y, radius)) {
 					erasedAny = true;
 					if (this.activeShapeStroke?.id === stroke.id) {
@@ -1350,6 +1642,10 @@ export class PageCanvas {
 		} else {
 			// Präzisionsradierer: split & excise segments
 			for (const stroke of this.page.strokes) {
+				if (stroke.isLocked || stroke.shape?.isLocked) {
+					remainingStrokes.push(stroke);
+					continue;
+				}
 				if (stroke.shape || stroke.points.length <= 2) {
 					if (isPointNearStroke(stroke, x, y, radius)) {
 						erasedAny = true;
@@ -1496,6 +1792,9 @@ export class PageCanvas {
 		for (const stroke of normalStrokes) {
 			this.renderStroke(stroke);
 		}
+
+		// 6. Update Shape lock badges
+		this.renderShapeLockBadges();
 	}
 
 	private imageElements = new Map<string, HTMLImageElement>();

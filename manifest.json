@@ -1,7 +1,7 @@
 {
 	"id": "betternotebooks",
 	"name": "BetterNoteBooks",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"minAppVersion": "1.7.2",
 	"description": "Create multi-page digital notebooks in your vault with smooth handwriting, geometric shapes, and palm rejection.",
 	"author": "Maik Schultheiß",
