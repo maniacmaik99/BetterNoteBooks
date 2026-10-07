@@ -279,18 +279,23 @@ export class PageCanvas {
 		this.canvas.addEventListener('pointermove', this.onPointerMove);
 		this.canvas.addEventListener('pointerup', this.onPointerUp);
 		this.canvas.addEventListener('pointercancel', this.onPointerCancel);
+		this.canvas.addEventListener('lostpointercapture', this.onLostPointerCapture);
 		this.canvas.addEventListener('pointerleave', this.onPointerLeave);
 		this.canvas.addEventListener('contextmenu', this.onContextMenu);
+		window.addEventListener('blur', this.onWindowBlur);
 	}
 
 	public destroy(): void {
 		this.clearHoldTimer();
+		this.safeReleasePointerCapture();
 		this.canvas.removeEventListener('pointerdown', this.onPointerDown);
 		this.canvas.removeEventListener('pointermove', this.onPointerMove);
 		this.canvas.removeEventListener('pointerup', this.onPointerUp);
 		this.canvas.removeEventListener('pointercancel', this.onPointerCancel);
+		this.canvas.removeEventListener('lostpointercapture', this.onLostPointerCapture);
 		this.canvas.removeEventListener('pointerleave', this.onPointerLeave);
 		this.canvas.removeEventListener('contextmenu', this.onContextMenu);
+		window.removeEventListener('blur', this.onWindowBlur);
 		this.pageEl.remove();
 	}
 
@@ -444,9 +449,27 @@ export class PageCanvas {
 		};
 	}
 
+	private safeReleasePointerCapture(pointerId?: number): void {
+		try {
+			if (pointerId !== undefined && this.canvas.hasPointerCapture(pointerId)) {
+				this.canvas.releasePointerCapture(pointerId);
+			}
+		} catch {
+			// Ignore release errors
+		}
+		try {
+			if (this.activePointerId !== null && this.canvas.hasPointerCapture(this.activePointerId)) {
+				this.canvas.releasePointerCapture(this.activePointerId);
+			}
+		} catch {
+			// Ignore release errors
+		}
+	}
+
 	public cancelCurrentStroke(): void {
 		if (this.isDrawing) {
 			this.clearHoldTimer();
+			this.safeReleasePointerCapture();
 			this.isDrawing = false;
 			this.activePointerId = null;
 			this.currentStroke = null;
@@ -873,114 +896,129 @@ export class PageCanvas {
 	}
 
 	private onPointerUp = (e: PointerEvent): void => {
-		if (!this.isDrawing || this.activePointerId !== e.pointerId) return;
+		this.safeReleasePointerCapture(e.pointerId);
+		if (!this.isDrawing) return;
+		if (this.activePointerId !== null && this.activePointerId !== e.pointerId) return;
 		this.finishPointer(e);
 	};
 
 	private onPointerCancel = (e: PointerEvent): void => {
-		if (!this.isDrawing || this.activePointerId !== e.pointerId) return;
+		this.safeReleasePointerCapture(e.pointerId);
+		if (!this.isDrawing) return;
+		if (this.activePointerId !== null && this.activePointerId !== e.pointerId) return;
 		this.finishPointer(e);
+	};
+
+	private onLostPointerCapture = (e: PointerEvent): void => {
+		this.safeReleasePointerCapture(e.pointerId);
+		if (this.isDrawing) {
+			this.finishPointer(e);
+		}
+	};
+
+	private onWindowBlur = (): void => {
+		if (this.isDrawing) {
+			this.cancelCurrentStroke();
+		} else {
+			this.safeReleasePointerCapture();
+		}
 	};
 
 	private finishPointer(e: PointerEvent): void {
 		this.clearHoldTimer();
-
-		if (this.currentStyle.tool === 'eraser') {
-			this.isDrawing = false;
-			this.activePointerId = null;
-			return;
-		}
-
-		// If Shape tool was used and not yet snapped, try snapping now
-		if (this.currentStyle.tool === 'shape' && !this.snappedShape && this.currentPoints.length >= 2) {
-			const recognized = recognizeShape(this.currentPoints);
-			if (recognized && this.currentStroke) {
-				this.snappedShape = recognized;
-				this.currentStroke.shape = recognized;
-				const label =
-					recognized.type === 'line'
-						? 'Linie / Bogen begradigt'
-						: recognized.type === 'circle'
-							? 'Kreis begradigt'
-							: 'Form begradigt';
-				new Notice(label, 1500);
-			}
-		}
-
-		if (this.snappedShape && this.currentStroke) {
-			// Inherit dashStyle, opacity, and fill
-			if (this.currentStyle.dashStyle) {
-				this.snappedShape.dashStyle = this.currentStyle.dashStyle;
-			}
-			if (this.currentStyle.opacity !== undefined) {
-				this.snappedShape.opacity = this.currentStyle.opacity;
-			}
-			if (this.snappedShape.isClosed && this.snappedShape.type !== 'line') {
-				if (this.currentStyle.tool === 'highlighter') {
-					this.snappedShape.hasFill = true;
-					this.snappedShape.fillColor = this.currentStroke.style.color;
-					this.snappedShape.fillOpacity = 0.35;
-				} else if (this.currentStyle.hasFill !== undefined) {
-					this.snappedShape.hasFill = this.currentStyle.hasFill;
-					this.snappedShape.fillColor =
-						this.currentStyle.fillColor || this.currentStroke.style.color;
-					this.snappedShape.fillOpacity =
-						this.currentStyle.fillOpacity ?? 0.25;
-				}
-			}
-
-			// Shape finalized: commit stroke and activate interactive control handles!
-			this.currentStroke.shape = this.snappedShape;
-			this.currentStroke.bbox = computeShapeBoundingBox(
-				this.snappedShape,
-				this.currentStroke.style.width,
-			);
-			this.snapAnchor = null;
-			this.page.strokes.push(this.currentStroke);
-			this.events.onStrokeAdded?.(this.page.id, this.currentStroke);
-
-			if (this.currentStyle.tool !== 'highlighter') {
-				this.showShapeHandles(this.currentStroke);
-			}
-			this.redrawAll();
-		} else {
-			// Normal freehand stroke
-			const isHighlighter = this.currentStyle.tool === 'highlighter';
-			if (!isHighlighter && this.currentPoints.length >= 2 && this.lastMidPoint && this.currentStroke) {
-				const lastPoint = this.currentPoints[this.currentPoints.length - 1];
-				if (lastPoint) {
-					this.setupContextForStyle(this.currentStroke.style);
-					this.ctx.lineWidth = this.currentLineWidth;
-					this.ctx.beginPath();
-					this.ctx.moveTo(this.lastMidPoint.x, this.lastMidPoint.y);
-					this.ctx.lineTo(lastPoint.x, lastPoint.y);
-					this.ctx.stroke();
-				}
-			}
-
-			if (this.currentStroke && this.currentStroke.points.length > 0) {
-				this.currentStroke.bbox = computeBoundingBox(
-					this.currentStroke.points,
-					this.currentStroke.style.width,
-				);
-				this.page.strokes.push(this.currentStroke);
-				this.events.onStrokeAdded?.(this.page.id, this.currentStroke);
-				this.redrawAll();
-			}
-		}
+		this.safeReleasePointerCapture(e.pointerId);
 
 		try {
-			this.canvas.releasePointerCapture(e.pointerId);
-		} catch {
-			// Ignore release errors
-		}
+			if (this.currentStyle.tool === 'eraser') {
+				return;
+			}
 
-		this.isDrawing = false;
-		this.activePointerId = null;
-		this.currentStroke = null;
-		this.currentPoints = [];
-		this.lastMidPoint = null;
-		this.snappedShape = null;
+			// If Shape tool was used and not yet snapped, try snapping now
+			if (this.currentStyle.tool === 'shape' && !this.snappedShape && this.currentPoints.length >= 2) {
+				const recognized = recognizeShape(this.currentPoints);
+				if (recognized && this.currentStroke) {
+					this.snappedShape = recognized;
+					this.currentStroke.shape = recognized;
+					const label =
+						recognized.type === 'line'
+							? 'Linie / Bogen begradigt'
+							: recognized.type === 'circle'
+								? 'Kreis begradigt'
+								: 'Form begradigt';
+					new Notice(label, 1500);
+				}
+			}
+
+			if (this.snappedShape && this.currentStroke) {
+				// Inherit dashStyle, opacity, and fill
+				if (this.currentStyle.dashStyle) {
+					this.snappedShape.dashStyle = this.currentStyle.dashStyle;
+				}
+				if (this.currentStyle.opacity !== undefined) {
+					this.snappedShape.opacity = this.currentStyle.opacity;
+				}
+				if (this.snappedShape.isClosed && this.snappedShape.type !== 'line') {
+					if (this.currentStyle.tool === 'highlighter') {
+						this.snappedShape.hasFill = true;
+						this.snappedShape.fillColor = this.currentStroke.style.color;
+						this.snappedShape.fillOpacity = 0.35;
+					} else if (this.currentStyle.hasFill !== undefined) {
+						this.snappedShape.hasFill = this.currentStyle.hasFill;
+						this.snappedShape.fillColor =
+							this.currentStyle.fillColor || this.currentStroke.style.color;
+						this.snappedShape.fillOpacity =
+							this.currentStyle.fillOpacity ?? 0.25;
+					}
+				}
+
+				// Shape finalized: commit stroke and activate interactive control handles!
+				this.currentStroke.shape = this.snappedShape;
+				this.currentStroke.bbox = computeShapeBoundingBox(
+					this.snappedShape,
+					this.currentStroke.style.width,
+				);
+				this.snapAnchor = null;
+				this.page.strokes.push(this.currentStroke);
+				this.events.onStrokeAdded?.(this.page.id, this.currentStroke);
+
+				if (this.currentStyle.tool !== 'highlighter') {
+					this.showShapeHandles(this.currentStroke);
+				}
+				this.redrawAll();
+			} else {
+				// Normal freehand stroke
+				const isHighlighter = this.currentStyle.tool === 'highlighter';
+				if (!isHighlighter && this.currentPoints.length >= 2 && this.lastMidPoint && this.currentStroke) {
+					const lastPoint = this.currentPoints[this.currentPoints.length - 1];
+					if (lastPoint) {
+						this.setupContextForStyle(this.currentStroke.style);
+						this.ctx.lineWidth = this.currentLineWidth;
+						this.ctx.beginPath();
+						this.ctx.moveTo(this.lastMidPoint.x, this.lastMidPoint.y);
+						this.ctx.lineTo(lastPoint.x, lastPoint.y);
+						this.ctx.stroke();
+					}
+				}
+
+				if (this.currentStroke && this.currentStroke.points.length > 0) {
+					this.currentStroke.bbox = computeBoundingBox(
+						this.currentStroke.points,
+						this.currentStroke.style.width,
+					);
+					this.page.strokes.push(this.currentStroke);
+					this.events.onStrokeAdded?.(this.page.id, this.currentStroke);
+					this.redrawAll();
+				}
+			}
+		} finally {
+			this.safeReleasePointerCapture(e.pointerId);
+			this.isDrawing = false;
+			this.activePointerId = null;
+			this.currentStroke = null;
+			this.currentPoints = [];
+			this.lastMidPoint = null;
+			this.snappedShape = null;
+		}
 	}
 
 	// ----------------------------------------------------
@@ -1003,13 +1041,6 @@ export class PageCanvas {
 			handleEl.style.top = `${handle.y}px`;
 
 			let isDraggingHandle = false;
-
-			const onHandleDown = (ev: MouseEvent | PointerEvent) => {
-				ev.stopPropagation();
-				ev.preventDefault();
-				isDraggingHandle = true;
-				handleEl.addClass('is-dragging');
-			};
 
 			const onHandleMove = (ev: MouseEvent | PointerEvent) => {
 				if (!isDraggingHandle) return;
@@ -1083,6 +1114,9 @@ export class PageCanvas {
 				if (isDraggingHandle) {
 					isDraggingHandle = false;
 					handleEl.removeClass('is-dragging');
+					window.removeEventListener('pointermove', onHandleMove as EventListener);
+					window.removeEventListener('pointerup', onHandleUp as EventListener);
+					window.removeEventListener('pointercancel', onHandleUp as EventListener);
 					stroke.bbox = computeShapeBoundingBox(
 						shape,
 						stroke.style.width,
@@ -1092,12 +1126,17 @@ export class PageCanvas {
 				}
 			};
 
+			const onHandleDown = (ev: MouseEvent | PointerEvent) => {
+				ev.stopPropagation();
+				ev.preventDefault();
+				isDraggingHandle = true;
+				handleEl.addClass('is-dragging');
+				window.addEventListener('pointermove', onHandleMove as EventListener);
+				window.addEventListener('pointerup', onHandleUp as EventListener);
+				window.addEventListener('pointercancel', onHandleUp as EventListener);
+			};
+
 			handleEl.addEventListener('pointerdown', onHandleDown as EventListener);
-			handleEl.addEventListener('mousedown', onHandleDown as EventListener);
-			window.addEventListener('pointermove', onHandleMove as EventListener);
-			window.addEventListener('mousemove', onHandleMove as EventListener);
-			window.addEventListener('pointerup', onHandleUp as EventListener);
-			window.addEventListener('mouseup', onHandleUp as EventListener);
 		}
 
 		// Create Floating Quick Action Bar above selected shape
@@ -2068,24 +2107,28 @@ export class PageCanvas {
 		});
 
 		const onEnd = (e: PointerEvent): void => {
+			try {
+				if (wrapper.hasPointerCapture(e.pointerId)) {
+					wrapper.releasePointerCapture(e.pointerId);
+				}
+			} catch {
+				// ignore capture error
+			}
+			try {
+				if (resizeHandle.hasPointerCapture(e.pointerId)) {
+					resizeHandle.releasePointerCapture(e.pointerId);
+				}
+			} catch {
+				// ignore capture error
+			}
 			if (isDragging) {
 				isDragging = false;
-				try {
-					wrapper.releasePointerCapture(e.pointerId);
-				} catch {
-					// ignore capture error
-				}
 				this.redrawAll();
 				this.events.onImageModified?.(this.page.id, img);
 				this.events.onPageChanged?.(this.page.id);
 			}
 			if (isResizing) {
 				isResizing = false;
-				try {
-					resizeHandle.releasePointerCapture(e.pointerId);
-				} catch {
-					// ignore capture error
-				}
 				this.redrawAll();
 				this.events.onImageModified?.(this.page.id, img);
 				this.events.onPageChanged?.(this.page.id);
@@ -2094,8 +2137,10 @@ export class PageCanvas {
 
 		wrapper.addEventListener('pointerup', onEnd);
 		wrapper.addEventListener('pointercancel', onEnd);
+		wrapper.addEventListener('lostpointercapture', onEnd);
 		resizeHandle.addEventListener('pointerup', onEnd);
 		resizeHandle.addEventListener('pointercancel', onEnd);
+		resizeHandle.addEventListener('lostpointercapture', onEnd);
 	}
 }
 
