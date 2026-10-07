@@ -1,5 +1,6 @@
 import { App, Modal, Setting } from 'obsidian';
 import { NotebookPage, PageFormat, PageOrientation, PageBackground } from '../types';
+import { t } from '../i18n';
 
 export class PageSettingsModal extends Modal {
 	private page: NotebookPage;
@@ -24,25 +25,25 @@ export class PageSettingsModal extends Modal {
 		contentEl.addClass('betternotebook-modal');
 
 		contentEl.createEl('h2', {
-			text: `Seiteneinstellungen: Seite ${this.page.pageNumber}`,
+			text: `${t('sidebar_change_format_bg')}: ${t('sidebar_page')} ${this.page.pageNumber}`,
 		});
 
 		new Setting(contentEl)
-			.setName('Seitentitel')
-			.setDesc('Individueller Name für diese Seite.')
+			.setName(t('sidebar_rename_page'))
+			.setDesc(t('sidebar_rename_page'))
 			.addText((text) =>
 				text.setValue(this.page.title).onChange((val) => {
-					this.page.title = val.trim() || `Seite ${this.page.pageNumber}`;
+					this.page.title = val.trim() || `${t('sidebar_page')} ${this.page.pageNumber}`;
 				}),
 			);
 
 		let groupInput: HTMLInputElement | null = null;
 		new Setting(contentEl)
-			.setName('Gruppe / Thema')
-			.setDesc('Kategorie zum Filtern und Auffinden.')
+			.setName(t('sidebar_assign_topic'))
+			.setDesc(t('sidebar_assign_topic'))
 			.addText((text) => {
-				text.setValue(this.page.group || 'Standard').onChange((val) => {
-					this.page.group = val.trim() || 'Standard';
+				text.setValue(this.page.group || t('sidebar_default_group')).onChange((val) => {
+					this.page.group = val.trim() || t('sidebar_default_group');
 				});
 				groupInput = text.inputEl;
 			});
@@ -53,7 +54,7 @@ export class PageSettingsModal extends Modal {
 			});
 			suggestionsDiv.createSpan({
 				cls: 'betternotebook-suggestions-label',
-				text: 'Vorhandene Gruppen: ',
+				text: `${t('sidebar_all_topics')}: `,
 			});
 			for (const grp of this.availableGroups) {
 				const chip = suggestionsDiv.createEl('button', {
@@ -72,14 +73,14 @@ export class PageSettingsModal extends Modal {
 		}
 
 		new Setting(contentEl)
-			.setName('Papierformat')
-			.setDesc('Wähle DIN A4, A3, A5 oder US-Letter.')
+			.setName(t('settings_default_format'))
+			.setDesc(t('settings_default_format_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('a4', 'DIN A4 (210 × 297 mm)')
-					.addOption('a5', 'DIN A5 (148 × 210 mm)')
-					.addOption('a3', 'DIN A3 (297 × 420 mm)')
-					.addOption('letter', 'US Letter (8.5 × 11 in)')
+					.addOption('a4', t('format_a4'))
+					.addOption('a5', t('format_a5'))
+					.addOption('a3', t('format_a3'))
+					.addOption('letter', t('format_letter'))
 					.setValue(this.page.format)
 					.onChange((val) => {
 						this.page.format = val as PageFormat;
@@ -87,12 +88,12 @@ export class PageSettingsModal extends Modal {
 			);
 
 		new Setting(contentEl)
-			.setName('Ausrichtung')
-			.setDesc('Hochformat oder Querformat.')
+			.setName(t('settings_default_orientation'))
+			.setDesc(t('settings_default_orientation_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('portrait', 'Hochformat (Portrait)')
-					.addOption('landscape', 'Querformat (Landscape)')
+					.addOption('portrait', t('orientation_portrait'))
+					.addOption('landscape', t('orientation_landscape'))
 					.setValue(this.page.orientation)
 					.onChange((val) => {
 						this.page.orientation = val as PageOrientation;
@@ -100,14 +101,14 @@ export class PageSettingsModal extends Modal {
 			);
 
 		new Setting(contentEl)
-			.setName('Hintergrundmuster')
-			.setDesc('Papierlinie, Gitter, Punkteraster oder Blanko.')
+			.setName(t('settings_default_background'))
+			.setDesc(t('settings_default_background_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('ruled', 'Liniert (Notizlinien)')
-					.addOption('grid', 'Kariert (Rechenkästchen)')
-					.addOption('dotted', 'Gepunktet (Bullet Journal)')
-					.addOption('blank', 'Blanko (Weißes Blatt)')
+					.addOption('ruled', t('background_ruled'))
+					.addOption('grid', t('background_grid'))
+					.addOption('dotted', t('background_dotted'))
+					.addOption('blank', t('background_blank'))
 					.setValue(this.page.background)
 					.onChange((val) => {
 						this.page.background = val as PageBackground;

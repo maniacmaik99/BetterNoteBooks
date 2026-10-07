@@ -6,6 +6,7 @@ import {
 	DEFAULT_LASSO_FILTER,
 } from '../types';
 import { LassoManager } from '../engine/lasso-manager';
+import { t } from '../i18n';
 
 export interface LassoPopoverOptions {
 	anchorEl: HTMLElement;
@@ -118,12 +119,12 @@ export class LassoPopover {
 		setIcon(headerIcon, 'lasso');
 		titleRow.createSpan({
 			cls: 'betternotebook-lasso-popover-title',
-			text: 'Lasso-Werkzeug',
+			text: t('lasso_title'),
 		});
 
 		const closeBtn = header.createEl('button', {
 			cls: 'betternotebook-lasso-popover-close',
-			title: 'Schließen',
+			title: '✕',
 		});
 		setIcon(closeBtn, 'x');
 		closeBtn.addEventListener('click', (e) => {
@@ -141,7 +142,7 @@ export class LassoPopover {
 		});
 		const freeIcon = freehandBtn.createSpan({ cls: 'seg-icon' });
 		setIcon(freeIcon, 'lasso');
-		freehandBtn.createSpan({ text: 'Freihand' });
+		freehandBtn.createSpan({ text: t('lasso_freehand') });
 		freehandBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			this.currentMode = 'freehand';
@@ -154,7 +155,7 @@ export class LassoPopover {
 		});
 		const rectIcon = rectBtn.createSpan({ cls: 'seg-icon' });
 		setIcon(rectIcon, 'square');
-		rectBtn.createSpan({ text: 'Rechteck' });
+		rectBtn.createSpan({ text: t('lasso_rectangle') });
 		rectBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			this.currentMode = 'rectangle';
@@ -171,14 +172,14 @@ export class LassoPopover {
 		});
 		filterHeader.createSpan({
 			cls: 'betternotebook-lasso-section-label',
-			text: 'ELEMENTE AUSWÄHLEN',
+			text: t('lasso_select_elements').toUpperCase(),
 		});
 
 		const allBtn = filterHeader.createEl('button', {
 			cls: `betternotebook-lasso-all-btn ${this.currentFilter.all ? 'is-active' : ''}`,
-			title: 'Alles markieren (Stumpfer Modus)',
+			title: t('lasso_select_all'),
 		});
-		allBtn.createSpan({ text: this.currentFilter.all ? 'Alle an' : 'Filter aktiv' });
+		allBtn.createSpan({ text: this.currentFilter.all ? t('lasso_all_on') : t('lasso_filter_active') });
 		allBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			const nextAll = !this.currentFilter.all;
@@ -203,10 +204,10 @@ export class LassoPopover {
 			label: string;
 			icon: string;
 		}[] = [
-			{ key: 'handwriting', label: 'Handschrift (Stift)', icon: 'pen-tool' },
-			{ key: 'highlighter', label: 'Textmarker', icon: 'highlighter' },
-			{ key: 'shapes', label: 'Formen & Linien', icon: 'shapes' },
-			{ key: 'images', label: 'Bilder & Grafiken', icon: 'image' },
+			{ key: 'handwriting', label: t('lasso_filter_handwriting'), icon: 'pen-tool' },
+			{ key: 'highlighter', label: t('lasso_filter_highlighter'), icon: 'highlighter' },
+			{ key: 'shapes', label: t('lasso_filter_shapes'), icon: 'shapes' },
+			{ key: 'images', label: t('lasso_filter_images'), icon: 'image' },
 		];
 
 		for (const item of filters) {
@@ -268,7 +269,7 @@ export class LassoPopover {
 			const pIcon = pasteBtn.createSpan({ cls: 'paste-icon' });
 			setIcon(pIcon, 'clipboard-paste');
 			pasteBtn.createSpan({
-				text: `Einfügen (${count} ${count === 1 ? 'Element' : 'Elemente'})`,
+				text: `${t('lasso_paste')} (${count} ${t('lasso_elements')})`,
 			});
 
 			pasteBtn.addEventListener('click', (e) => {

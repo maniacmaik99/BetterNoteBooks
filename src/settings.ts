@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type BetterNotebookPlugin from './main';
 import { PageFormat, PageOrientation, PageBackground } from './types';
+import { SUPPORTED_LANGUAGES, setLanguage, t } from './i18n';
 
 export class BetterNotebookSettingTab extends PluginSettingTab {
 	private plugin: BetterNotebookPlugin;
@@ -19,14 +20,24 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Allgemein')
-			.setHeading();
+			.setName(t('settings_language'))
+			.setDesc(t('settings_language_desc'))
+			.addDropdown((dropdown) => {
+				SUPPORTED_LANGUAGES.forEach((lang) => {
+					dropdown.addOption(lang.code, lang.nativeName);
+				});
+				dropdown.setValue(this.plugin.settings.language || 'auto');
+				dropdown.onChange(async (val) => {
+					this.plugin.settings.language = val;
+					setLanguage(val);
+					await this.plugin.saveSettings();
+					this.display();
+				});
+			});
 
 		new Setting(containerEl)
-			.setName('Strich-Glättung (Smoothing Factor)')
-			.setDesc(
-				'Stärke der Interpolation zwischen Sensor-Events (höherer Wert = weichere Striche, geringere Jitter-Empfindlichkeit). Standard: 0.35',
-			)
+			.setName(t('settings_smoothing'))
+			.setDesc(t('settings_smoothing_desc'))
 			.addSlider((slider) =>
 				slider
 					.setLimits(0.1, 0.9, 0.05)
@@ -39,10 +50,8 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Druck-Empfindlichkeit (Pressure Sensitivity)')
-			.setDesc(
-				'Skalierungsfaktor für Stylus-Druckerkennung (Arch Linux / Wayland Stylus). Standard: 2.0',
-			)
+			.setName(t('settings_pressure'))
+			.setDesc(t('settings_pressure_desc'))
 			.addSlider((slider) =>
 				slider
 					.setLimits(0.5, 4.0, 0.1)
@@ -55,14 +64,14 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Standard-Papierformat')
-			.setDesc('Papierformat für neu erstellte Seiten.')
+			.setName(t('settings_default_format'))
+			.setDesc(t('settings_default_format_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('a4', 'DIN A4')
-					.addOption('a5', 'DIN A5')
-					.addOption('a3', 'DIN A3')
-					.addOption('letter', 'US Letter')
+					.addOption('a4', t('format_a4'))
+					.addOption('a5', t('format_a5'))
+					.addOption('a3', t('format_a3'))
+					.addOption('letter', t('format_letter'))
 					.setValue(this.plugin.settings.defaultPageFormat)
 					.onChange(async (val) => {
 						this.plugin.settings.defaultPageFormat = val as PageFormat;
@@ -71,12 +80,12 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Standard-Seitenausrichtung')
-			.setDesc('Ausrichtung für neu angelegte Seiten.')
+			.setName(t('settings_default_orientation'))
+			.setDesc(t('settings_default_orientation_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('portrait', 'Hochformat (Portrait)')
-					.addOption('landscape', 'Querformat (Landscape)')
+					.addOption('portrait', t('orientation_portrait'))
+					.addOption('landscape', t('orientation_landscape'))
 					.setValue(this.plugin.settings.defaultOrientation)
 					.onChange(async (val) => {
 						this.plugin.settings.defaultOrientation =
@@ -86,14 +95,14 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Standard-Hintergrundmuster')
-			.setDesc('Muster für neu angelegte Seiten.')
+			.setName(t('settings_default_background'))
+			.setDesc(t('settings_default_background_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('ruled', 'Liniert')
-					.addOption('grid', 'Kariert')
-					.addOption('dotted', 'Gepunktet')
-					.addOption('blank', 'Blanko')
+					.addOption('ruled', t('background_ruled'))
+					.addOption('grid', t('background_grid'))
+					.addOption('dotted', t('background_dotted'))
+					.addOption('blank', t('background_blank'))
 					.setValue(this.plugin.settings.defaultBackground)
 					.onChange(async (val) => {
 						this.plugin.settings.defaultBackground =
@@ -103,8 +112,8 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Standard-Strichstärke')
-			.setDesc('Standard-Breite des Stifts in Pixeln.')
+			.setName(t('settings_default_width'))
+			.setDesc(t('settings_default_width_desc'))
 			.addSlider((slider) =>
 				slider
 					.setLimits(1, 10, 0.5)
@@ -117,8 +126,8 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Standard-Farbe')
-			.setDesc('Hex-Farbwert für den Stift beim Öffnen.')
+			.setName(t('settings_default_color'))
+			.setDesc(t('settings_default_color_desc'))
 			.addColorPicker((color) =>
 				color
 					.setValue(this.plugin.settings.defaultColor)
@@ -129,10 +138,8 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Formen-Erkennung (Draw and Hold)')
-			.setDesc(
-				'Hält man den Stift am Ende einer geometrischen Form still, wird sie automatisch begradigt (Linie, Bogen, Kreis, Rechteck, Dreieck).',
-			)
+			.setName(t('settings_shape_recognition'))
+			.setDesc(t('settings_shape_recognition_desc'))
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.shapeRecognitionEnabled)
@@ -143,8 +150,8 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Halte-Dauer für Formen (ms)')
-			.setDesc('Stillstandsdauer in Millisekunden, bevor die Form einrastet.')
+			.setName(t('settings_shape_hold_duration'))
+			.setDesc(t('settings_shape_hold_duration_desc'))
 			.addSlider((slider) =>
 				slider
 					.setLimits(250, 800, 50)
@@ -157,10 +164,8 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Stift-Modus (Handflächenschutz / Stylus Only)')
-			.setDesc(
-				'Wenn aktiviert, schreibt ausschließlich der Stift (Stylus / Apple Pencil). Finger und Handfläche scrollen oder zoomen und zeichnen keine versehentlichen Striche.',
-			)
+			.setName(t('settings_stylus_only'))
+			.setDesc(t('settings_stylus_only_desc'))
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.stylusOnlyMode)
@@ -171,10 +176,8 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Zoom-adaptive Strichstärke')
-			.setDesc(
-				'Passt die Strichstärke beim Hineinzoomen automatisch an, sodass beim Hineinzoomen feinere Notizen geschrieben werden können und die Schrift auf dem Blatt proportional kleiner wird.',
-			)
+			.setName(t('settings_zoom_adaptive'))
+			.setDesc(t('settings_zoom_adaptive_desc'))
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.zoomAdaptiveStrokeWidth)
@@ -185,10 +188,8 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Notizbuch-Ordner im Vault')
-			.setDesc(
-				'Name des Vault-Ordners, in dem alle erstellten Notizbücher abgelegt und gesucht werden. Standard: notebooks',
-			)
+			.setName(t('settings_notebooks_folder'))
+			.setDesc(t('settings_notebooks_folder_desc'))
 			.addText((text) =>
 				text
 					.setPlaceholder('notebooks')

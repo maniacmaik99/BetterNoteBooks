@@ -2,6 +2,7 @@ import { App, Menu, setIcon } from 'obsidian';
 import { NotebookEngine } from '../engine/notebook-engine';
 import { NotebookPage } from '../types';
 import { PromptModal } from './prompt-modal';
+import { t } from '../i18n';
 
 export interface NotebookSidebarCallbacks {
 	onSelectPage: (pageId: string) => void;
@@ -81,13 +82,13 @@ export class NotebookSidebar {
 
 		const title = header.createSpan({
 			cls: 'betternotebook-sidebar-title',
-			text: 'Seitenübersicht',
+			text: t('sidebar_title'),
 		});
 		title.title = this.engine.getDocument().title;
 
 		const addPageBtn = header.createEl('button', {
 			cls: 'betternotebook-sidebar-icon-btn',
-			title: 'Neue Seite hinzufügen',
+			title: t('sidebar_new_page'),
 		});
 		setIcon(addPageBtn, 'plus');
 		addPageBtn.addEventListener('click', () => {
@@ -115,7 +116,7 @@ export class NotebookSidebar {
 			cls: 'betternotebook-search-input',
 			attr: {
 				type: 'text',
-				placeholder: 'Seite oder Thema suchen...',
+				placeholder: t('sidebar_search_placeholder'),
 			},
 		});
 
@@ -386,7 +387,7 @@ export class NotebookSidebar {
 
 		const dupBtn = actions.createEl('button', {
 			cls: 'betternotebook-card-btn',
-			title: 'Seite duplizieren',
+			title: t('sidebar_duplicate_page'),
 		});
 		setIcon(dupBtn, 'copy');
 		dupBtn.addEventListener('click', (e) => {
@@ -396,7 +397,7 @@ export class NotebookSidebar {
 
 		const formatBtn = actions.createEl('button', {
 			cls: 'betternotebook-card-btn',
-			title: 'Format & Hintergrund ändern',
+			title: t('sidebar_change_format_bg'),
 		});
 		setIcon(formatBtn, 'sliders');
 		formatBtn.addEventListener('click', (e) => {
@@ -406,7 +407,7 @@ export class NotebookSidebar {
 
 		const delBtn = actions.createEl('button', {
 			cls: 'betternotebook-card-btn delete',
-			title: 'Seite löschen',
+			title: t('sidebar_delete_page'),
 		});
 		setIcon(delBtn, 'trash-2');
 		delBtn.addEventListener('click', (e) => {

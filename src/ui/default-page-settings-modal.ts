@@ -1,6 +1,7 @@
 import { App, Modal, Setting } from 'obsidian';
 import type BetterNotebookPlugin from '../main';
 import { PageFormat, PageOrientation, PageBackground } from '../types';
+import { t } from '../i18n';
 
 export class DefaultPageSettingsModal extends Modal {
 	private plugin: BetterNotebookPlugin;
@@ -18,22 +19,22 @@ export class DefaultPageSettingsModal extends Modal {
 		contentEl.addClass('betternotebook-modal');
 
 		contentEl.createEl('h2', {
-			text: 'Standard-Layout für neue Seiten anpassen',
+			text: t('settings_default_format'),
 		});
 		contentEl.createEl('p', {
 			cls: 'betternotebook-modal-desc',
-			text: 'Dieses Basislayout wird automatisch angewendet, wenn du in der Toolbar auf "+ Seite" klickst.',
+			text: t('settings_default_format_desc'),
 		});
 
 		new Setting(contentEl)
-			.setName('Standard-Papierformat')
-			.setDesc('Papierformat für neue Seiten.')
+			.setName(t('settings_default_format'))
+			.setDesc(t('settings_default_format_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('a4', 'DIN A4 (210 × 297 mm)')
-					.addOption('a5', 'DIN A5 (148 × 210 mm)')
-					.addOption('a3', 'DIN A3 (297 × 420 mm)')
-					.addOption('letter', 'US Letter (8.5 × 11 in)')
+					.addOption('a4', t('format_a4'))
+					.addOption('a5', t('format_a5'))
+					.addOption('a3', t('format_a3'))
+					.addOption('letter', t('format_letter'))
 					.setValue(this.plugin.settings.defaultPageFormat)
 					.onChange(async (val) => {
 						this.plugin.settings.defaultPageFormat = val as PageFormat;
@@ -42,12 +43,12 @@ export class DefaultPageSettingsModal extends Modal {
 			);
 
 		new Setting(contentEl)
-			.setName('Standard-Seitenausrichtung')
-			.setDesc('Hochformat oder Querformat.')
+			.setName(t('settings_default_orientation'))
+			.setDesc(t('settings_default_orientation_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('portrait', 'Hochformat (Portrait)')
-					.addOption('landscape', 'Querformat (Landscape)')
+					.addOption('portrait', t('orientation_portrait'))
+					.addOption('landscape', t('orientation_landscape'))
 					.setValue(this.plugin.settings.defaultOrientation)
 					.onChange(async (val) => {
 						this.plugin.settings.defaultOrientation =
@@ -57,14 +58,14 @@ export class DefaultPageSettingsModal extends Modal {
 			);
 
 		new Setting(contentEl)
-			.setName('Standard-Hintergrundmuster')
-			.setDesc('Liniert, Kariert, Gepunktet oder Blanko.')
+			.setName(t('settings_default_background'))
+			.setDesc(t('settings_default_background_desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('ruled', 'Liniert (Notizlinien)')
-					.addOption('grid', 'Kariert (Rechenkästchen)')
-					.addOption('dotted', 'Gepunktet (Bullet Journal)')
-					.addOption('blank', 'Blanko (Weißes Blatt)')
+					.addOption('ruled', t('background_ruled'))
+					.addOption('grid', t('background_grid'))
+					.addOption('dotted', t('background_dotted'))
+					.addOption('blank', t('background_blank'))
 					.setValue(this.plugin.settings.defaultBackground)
 					.onChange(async (val) => {
 						this.plugin.settings.defaultBackground =

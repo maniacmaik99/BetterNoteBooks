@@ -4,6 +4,7 @@ import {
 	EraserMode,
 	DashStyle,
 } from '../types';
+import { t } from '../i18n';
 
 export class BaseToolPopover {
 	protected popoverEl: HTMLElement | null = null;
@@ -152,7 +153,7 @@ export class PenPopover extends BaseToolPopover {
 		if (!this.popoverEl) return;
 		this.popoverEl.empty();
 
-		this.renderHeader('Stift-Einstellungen', 'pen-tool');
+		this.renderHeader(t('popover_pen_title'), 'pen-tool');
 
 		// Smoothing Section
 		const section = this.popoverEl.createDiv({
@@ -160,7 +161,7 @@ export class PenPopover extends BaseToolPopover {
 		});
 		section.createSpan({
 			cls: 'betternotebook-lasso-section-label',
-			text: 'GLÄTTUNG (SMOOTHING)',
+			text: t('popover_pen_smoothing').toUpperCase(),
 		});
 
 		const segmented = this.popoverEl.createDiv({
@@ -168,9 +169,9 @@ export class PenPopover extends BaseToolPopover {
 		});
 
 		const modes = [
-			{ label: 'Aus', value: 0 },
-			{ label: 'Normal', value: 0.35 },
-			{ label: 'Weich', value: 0.65 },
+			{ label: '0', value: 0 },
+			{ label: t('popover_size_medium'), value: 0.35 },
+			{ label: t('popover_size_broad'), value: 0.65 },
 		];
 
 		modes.forEach((m) => {
@@ -192,7 +193,7 @@ export class PenPopover extends BaseToolPopover {
 			cls: 'betternotebook-popover-hint',
 		});
 		note.createSpan({
-			text: 'Glättet Striche in Echtzeit für ein sauberes Schriftbild.',
+			text: t('popover_pen_desc'),
 		});
 
 		// Divider
@@ -216,7 +217,7 @@ export class PenPopover extends BaseToolPopover {
 		setIcon(iconSpan, 'pencil');
 		left.createSpan({
 			cls: 'betternotebook-lasso-filter-label',
-			text: 'Handflächenschutz (Nur Stift)',
+			text: t('popover_pen_stylus_only'),
 		});
 
 		const switchEl = row.createDiv({
@@ -267,7 +268,7 @@ export class EraserPopover extends BaseToolPopover {
 		if (!this.popoverEl) return;
 		this.popoverEl.empty();
 
-		this.renderHeader('Radiergummi', 'eraser');
+		this.renderHeader(t('popover_eraser_title'), 'eraser');
 
 		// 1. Eraser Mode
 		const modeHeader = this.popoverEl.createDiv({
@@ -275,7 +276,7 @@ export class EraserPopover extends BaseToolPopover {
 		});
 		modeHeader.createSpan({
 			cls: 'betternotebook-lasso-section-label',
-			text: 'RADIERER-MODUS',
+			text: t('popover_eraser_mode').toUpperCase(),
 		});
 
 		const modeSegmented = this.popoverEl.createDiv({
@@ -287,7 +288,7 @@ export class EraserPopover extends BaseToolPopover {
 		});
 		const precIcon = precBtn.createSpan({ cls: 'seg-icon' });
 		setIcon(precIcon, 'scissors');
-		precBtn.createSpan({ text: 'Präzision' });
+		precBtn.createSpan({ text: t('popover_eraser_precision') });
 		precBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			this.currentMode = 'precision';
@@ -300,7 +301,7 @@ export class EraserPopover extends BaseToolPopover {
 		});
 		const strokeIcon = strokeBtn.createSpan({ cls: 'seg-icon' });
 		setIcon(strokeIcon, 'trash-2');
-		strokeBtn.createSpan({ text: 'Ganzer Strich' });
+		strokeBtn.createSpan({ text: t('popover_eraser_stroke') });
 		strokeBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			this.currentMode = 'stroke';
@@ -317,7 +318,7 @@ export class EraserPopover extends BaseToolPopover {
 		});
 		sizeHeader.createSpan({
 			cls: 'betternotebook-lasso-section-label',
-			text: 'RADIERER-GRÖSSE',
+			text: t('popover_eraser_size').toUpperCase(),
 		});
 
 		const sizeSegmented = this.popoverEl.createDiv({
@@ -325,9 +326,9 @@ export class EraserPopover extends BaseToolPopover {
 		});
 
 		const sizes = [
-			{ label: 'Fein (8px)', value: 8 },
-			{ label: 'Mittel (16px)', value: 16 },
-			{ label: 'Breit (28px)', value: 28 },
+			{ label: `${t('popover_size_fine')} (8px)`, value: 8 },
+			{ label: `${t('popover_size_medium')} (16px)`, value: 16 },
+			{ label: `${t('popover_size_broad')} (28px)`, value: 28 },
 		];
 
 		sizes.forEach((s) => {
@@ -354,11 +355,11 @@ export class EraserPopover extends BaseToolPopover {
 
 		const clearBtn = footer.createEl('button', {
 			cls: 'betternotebook-tool-action-btn is-danger',
-			title: 'Alle Striche auf dieser Seite entfernen',
+			title: t('popover_clear_page_desc'),
 		});
 		const cIcon = clearBtn.createSpan({ cls: 'btn-icon' });
 		setIcon(cIcon, 'trash');
-		clearBtn.createSpan({ text: 'Seite leeren (Alle Striche löschen)' });
+		clearBtn.createSpan({ text: t('popover_clear_page') });
 		clearBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			this.options.onClearPage();
@@ -403,7 +404,7 @@ export class ShapePopover extends BaseToolPopover {
 		if (!this.popoverEl) return;
 		this.popoverEl.empty();
 
-		this.renderHeader('Formen & Linien', 'shapes');
+		this.renderHeader(t('popover_shapes_title'), 'shapes');
 
 		// 1. Dash Style
 		const styleHeader = this.popoverEl.createDiv({
@@ -411,7 +412,7 @@ export class ShapePopover extends BaseToolPopover {
 		});
 		styleHeader.createSpan({
 			cls: 'betternotebook-lasso-section-label',
-			text: 'LINIENSTIL',
+			text: t('popover_line_style').toUpperCase(),
 		});
 
 		const styleSegmented = this.popoverEl.createDiv({
@@ -419,9 +420,9 @@ export class ShapePopover extends BaseToolPopover {
 		});
 
 		const styles: { label: string; value: DashStyle; icon: string }[] = [
-			{ label: 'Voll', value: 'solid', icon: 'minus' },
-			{ label: 'Gestrichelt', value: 'dashed', icon: 'more-horizontal' },
-			{ label: 'Gepunktet', value: 'dotted', icon: 'circle' },
+			{ label: '—', value: 'solid', icon: 'minus' },
+			{ label: '- -', value: 'dashed', icon: 'more-horizontal' },
+			{ label: '···', value: 'dotted', icon: 'circle' },
 		];
 
 		styles.forEach((s) => {
@@ -449,7 +450,7 @@ export class ShapePopover extends BaseToolPopover {
 		});
 		opHeader.createSpan({
 			cls: 'betternotebook-lasso-section-label',
-			text: 'LINIEN-DECKKRAFT',
+			text: t('popover_line_opacity').toUpperCase(),
 		});
 
 		const opSegmented = this.popoverEl.createDiv({
@@ -497,7 +498,7 @@ export class ShapePopover extends BaseToolPopover {
 		setIcon(iconSpan, 'box');
 		left.createSpan({
 			cls: 'betternotebook-lasso-filter-label',
-			text: 'Form-Fläche füllen',
+			text: t('popover_shape_fill'),
 		});
 
 		const switchEl = row.createDiv({
@@ -549,8 +550,8 @@ export class SizeAdjustmentPopover extends BaseToolPopover {
 
 		const isEraser = this.options.mode === 'eraser';
 		const title = isEraser
-			? `${this.options.slotLabel}: Radierer-Größe`
-			: `${this.options.slotLabel}: Stärke`;
+			? `${this.options.slotLabel}: ${t('popover_eraser_size')}`
+			: `${this.options.slotLabel}: ${t('toolbar_pen_slot')}`;
 		const iconName = isEraser ? 'eraser' : 'pen-tool';
 
 		this.renderHeader(title, iconName);

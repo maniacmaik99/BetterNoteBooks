@@ -3,6 +3,7 @@ import { VIEW_TYPE_DRAWING, DrawingView } from './ui/drawing-view';
 import { BetterNotebookSettings, DEFAULT_SETTINGS } from './types';
 import { BetterNotebookSettingTab } from './settings';
 import { NotebookStore } from './storage/notebook-store';
+import { setLanguage, t } from './i18n';
 
 export { VIEW_TYPE_DRAWING };
 
@@ -11,6 +12,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		setLanguage(this.settings.language);
 
 		this.registerView(
 			VIEW_TYPE_DRAWING,
@@ -19,13 +21,13 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.registerExtensions(['bnp'], VIEW_TYPE_DRAWING);
 
-		this.addRibbonIcon('pencil', 'BetterNoteBooks öffnen', () => {
+		this.addRibbonIcon('pencil', t('ribbon_open_betternotebooks'), () => {
 			void this.activateView();
 		});
 
 		this.addCommand({
 			id: 'open-drawing-view',
-			name: 'Zeichenfläche öffnen',
+			name: t('command_open_drawing_view'),
 			callback: () => {
 				void this.activateView();
 			},
@@ -33,7 +35,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'create-new-notebook',
-			name: 'Neues Notizbuch erstellen',
+			name: t('command_create_new_notebook'),
 			callback: () => {
 				void (async () => {
 					const leaf = await this.activateView();
@@ -46,13 +48,13 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'open-notebook-file',
-			name: 'Notizbuch aus Vault öffnen',
+			name: t('command_open_notebook_file'),
 			callback: () => {
 				void (async () => {
 					const store = new NotebookStore(this.app, this);
 					const files = await store.listNotebookFiles();
 					if (files.length === 0) {
-						new Notice('Keine gespeicherten Notizbücher im Vault gefunden.');
+						new Notice(t('notice_no_notebooks'));
 						return;
 					}
 
@@ -75,7 +77,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'add-new-page',
-			name: 'Neue Seite hinzufügen',
+			name: t('command_add_new_page'),
 			callback: () => {
 				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
 				if (activeLeaf) {
@@ -93,7 +95,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'toggle-eraser-mode',
-			name: 'Radiergummi-Modus umschalten (Strich / Präzision)',
+			name: t('command_toggle_eraser_mode'),
 			callback: () => {
 				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
 				if (activeLeaf) {
@@ -104,7 +106,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'toggle-stylus-only-mode',
-			name: 'Stift-Modus umschalten (Handflächenschutz)',
+			name: t('command_toggle_stylus_mode'),
 			callback: () => {
 				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
 				if (activeLeaf) {
@@ -115,7 +117,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'clear-active-page',
-			name: 'Aktuelle Seite leeren',
+			name: t('command_clear_current_page'),
 			callback: () => {
 				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
 				if (activeLeaf) {

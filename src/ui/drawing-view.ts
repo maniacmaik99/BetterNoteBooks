@@ -31,6 +31,7 @@ import {
 	ShapePopover,
 	SizeAdjustmentPopover,
 } from './tool-popovers';
+import { t, isRtl } from '../i18n';
 
 export const VIEW_TYPE_DRAWING = 'drawing-view';
 
@@ -190,6 +191,9 @@ export class DrawingView extends TextFileView {
 		this.rootContainerEl = this.contentEl.createDiv({
 			cls: 'betternotebook-view-root',
 		});
+		if (isRtl()) {
+			this.rootContainerEl.setAttribute('dir', 'rtl');
+		}
 
 		// 1. Render GoodNotes-style toolbar
 		this.toolbarEl = this.rootContainerEl.createDiv({
@@ -377,31 +381,31 @@ export class DrawingView extends TextFileView {
 
 		const penBtn = toolsGroup.createEl('button', {
 			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'pen' ? 'is-active' : ''} ${this.stylusOnlyMode ? 'has-stylus-mode' : ''}`,
-			title: `Stift (Freihand)${this.stylusOnlyMode ? ' • Stift-Modus (Handflächenschutz) AKTIV' : ''}`,
+			title: `${t('toolbar_pen')}${this.stylusOnlyMode ? ` • ${t('popover_pen_stylus_only')}` : ''}`,
 		});
 		setIcon(penBtn, 'pen-tool');
 
 		const highlighterBtn = toolsGroup.createEl('button', {
 			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'highlighter' ? 'is-active' : ''}`,
-			title: 'Textmarker (Highlighter)',
+			title: t('toolbar_highlighter'),
 		});
 		setIcon(highlighterBtn, 'highlighter');
 
 		const eraserBtn = toolsGroup.createEl('button', {
 			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'eraser' ? 'is-active' : ''}`,
-			title: `Radiergummi (${this.currentStyle.eraserMode === 'stroke' ? 'Strichradierer' : 'Präzisionsradierer'})`,
+			title: `${t('toolbar_eraser')} (${this.currentStyle.eraserMode === 'stroke' ? t('popover_eraser_stroke') : t('popover_eraser_precision')})`,
 		});
 		setIcon(eraserBtn, 'eraser');
 
 		const shapeBtn = toolsGroup.createEl('button', {
 			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'shape' ? 'is-active' : ''}`,
-			title: 'Geometrische Formen (Shape Tool)',
+			title: t('toolbar_shapes'),
 		});
 		setIcon(shapeBtn, 'shapes');
 
 		const lassoBtn = toolsGroup.createEl('button', {
 			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'lasso' ? 'is-active' : ''}`,
-			title: `Lasso-Werkzeug (${(this.currentStyle.lassoMode ?? 'freehand') === 'rectangle' ? 'Rechteck' : 'Freihand'})`,
+			title: `${t('toolbar_lasso')} (${(this.currentStyle.lassoMode ?? 'freehand') === 'rectangle' ? t('lasso_rectangle') : t('lasso_freehand')})`,
 		});
 		try {
 			setIcon(lassoBtn, 'lasso-select');
@@ -440,12 +444,12 @@ export class DrawingView extends TextFileView {
 
 			if (tool === 'shape') {
 				new Notice(
-					'Formen-Werkzeug aktiv: Zeichne eine grobe Form oder Linie – sie wird automatisch begradigt!',
+					t('toolbar_shape_banner'),
 					2500,
 				);
 			} else if (tool === 'lasso') {
 				new Notice(
-					'Lasso-Werkzeug aktiv: Umkreise oder rahme Inhalte ein, um sie zu verschieben oder zu bearbeiten.',
+					t('toolbar_lasso_banner'),
 					2500,
 				);
 			}
@@ -510,7 +514,7 @@ export class DrawingView extends TextFileView {
 
 		this.colorPrevBtn = colorsGroup.createEl('button', {
 			cls: 'betternotebook-color-nav-btn prev is-disabled',
-			title: 'Farben zurück',
+			title: t('toolbar_colors_back'),
 		});
 		this.colorPrevBtn.type = 'button';
 		setIcon(this.colorPrevBtn, 'chevron-left');
@@ -525,7 +529,7 @@ export class DrawingView extends TextFileView {
 
 		this.colorNextBtn = colorsGroup.createEl('button', {
 			cls: 'betternotebook-color-nav-btn next',
-			title: 'Weitere Farben',
+			title: t('toolbar_colors_more'),
 		});
 		this.colorNextBtn.type = 'button';
 		setIcon(this.colorNextBtn, 'chevron-right');
@@ -534,7 +538,7 @@ export class DrawingView extends TextFileView {
 
 		const addColorBtn = colorsGroup.createEl('button', {
 			cls: 'betternotebook-add-color-btn',
-			title: 'Farbe hinzufügen (Palette / Hex / Pipette)',
+			title: t('toolbar_add_color'),
 		});
 		addColorBtn.type = 'button';
 		setIcon(addColorBtn, 'plus');
@@ -558,7 +562,7 @@ export class DrawingView extends TextFileView {
 
 		const insertImageBtn = insertGroup.createEl('button', {
 			cls: 'betternotebook-action-btn',
-			title: 'Foto / Dokument einfügen (vom Gerät)',
+			title: t('toolbar_insert_image_device'),
 		});
 		setIcon(insertImageBtn, 'image');
 		insertImageBtn.addEventListener('click', () => {
@@ -571,7 +575,7 @@ export class DrawingView extends TextFileView {
 
 		const insertCaretBtn = insertGroup.createEl('button', {
 			cls: 'betternotebook-action-btn small-caret',
-			title: 'Bildquelle wählen (Vault, Zwischenablage, etc.)',
+			title: t('toolbar_insert_image_menu'),
 		});
 		setIcon(insertCaretBtn, 'chevron-down');
 		insertCaretBtn.addEventListener('click', (e) => {
@@ -585,7 +589,7 @@ export class DrawingView extends TextFileView {
 
 		this.prevPageBtn = pageGroup.createEl('button', {
 			cls: 'betternotebook-action-btn',
-			title: 'Vorherige Seite',
+			title: t('toolbar_prev_page'),
 		});
 		setIcon(this.prevPageBtn, 'chevron-left');
 		this.prevPageBtn.addEventListener('click', () => {
@@ -594,7 +598,7 @@ export class DrawingView extends TextFileView {
 
 		this.pageIndicatorEl = pageGroup.createSpan({
 			cls: 'betternotebook-page-counter-badge',
-			title: 'Klicken zum Springen auf eine bestimmte Seite',
+			title: `${t('sidebar_page')}...`,
 		});
 		this.pageIndicatorEl.addEventListener('click', (ev) => {
 			this.openPageJumpMenu(ev);
@@ -602,7 +606,7 @@ export class DrawingView extends TextFileView {
 
 		this.nextPageBtn = pageGroup.createEl('button', {
 			cls: 'betternotebook-action-btn',
-			title: 'Nächste Seite',
+			title: t('toolbar_next_page'),
 		});
 		setIcon(this.nextPageBtn, 'chevron-right');
 		this.nextPageBtn.addEventListener('click', () => {
@@ -612,19 +616,19 @@ export class DrawingView extends TextFileView {
 		const curFormat = (this.plugin.settings?.defaultPageFormat || 'a4').toUpperCase();
 		const curBg = this.plugin.settings?.defaultBackground || 'ruled';
 		const bgLabels: Record<string, string> = {
-			ruled: 'Liniert',
-			grid: 'Kariert',
-			dotted: 'Gepunktet',
-			blank: 'Blanko',
+			ruled: t('background_ruled'),
+			grid: t('background_grid'),
+			dotted: t('background_dotted'),
+			blank: t('background_blank'),
 		};
 		const curBgLabel = bgLabels[curBg] || curBg;
 
 		const addPageBtn = pageGroup.createEl('button', {
 			cls: 'betternotebook-action-btn with-text',
-			title: `Neue Seite anlegen (Standard: ${curFormat} • ${curBgLabel})`,
+			title: `${t('sidebar_new_page')} (${curFormat} • ${curBgLabel})`,
 		});
 		setIcon(addPageBtn, 'file-plus');
-		addPageBtn.createSpan({ text: '+ Seite' });
+		addPageBtn.createSpan({ text: t('toolbar_add_page') });
 		addPageBtn.addEventListener('click', () => {
 			this.addNewPage();
 		});
@@ -632,7 +636,7 @@ export class DrawingView extends TextFileView {
 		// Quick Template Menu & Default Page Layout Settings
 		const pageMenuBtn = pageGroup.createEl('button', {
 			cls: 'betternotebook-action-btn small-caret',
-			title: 'Seiteneinstellungen & Standard-Layout wählen',
+			title: t('toolbar_page_settings'),
 		});
 		setIcon(pageMenuBtn, 'chevron-down');
 		pageMenuBtn.addEventListener('click', (ev) => {
@@ -641,7 +645,7 @@ export class DrawingView extends TextFileView {
 			// 1. Quick insert using current standard
 			menu.addItem((item) =>
 				item
-					.setTitle(`Neue Standard-Seite anlegen (${curFormat} • ${curBgLabel})`)
+					.setTitle(`${t('sidebar_new_page')} (${curFormat} • ${curBgLabel})`)
 					.setIcon('file-plus')
 					.onClick(() => this.addNewPage()),
 			);
@@ -651,37 +655,37 @@ export class DrawingView extends TextFileView {
 			// 2. Insert one-off page with specific template
 			menu.addItem((item) =>
 				item
-					.setTitle('Neue Seite (DIN A4 • Liniert)')
+					.setTitle(`${t('sidebar_new_page')} (${t('format_a4')} • ${t('background_ruled')})`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a4', 'ruled')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle('Neue Seite (DIN A4 • Kariert)')
+					.setTitle(`${t('sidebar_new_page')} (${t('format_a4')} • ${t('background_grid')})`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a4', 'grid')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle('Neue Seite (DIN A4 • Gepunktet)')
+					.setTitle(`${t('sidebar_new_page')} (${t('format_a4')} • ${t('background_dotted')})`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a4', 'dotted')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle('Neue Seite (DIN A4 • Blanko)')
+					.setTitle(`${t('sidebar_new_page')} (${t('format_a4')} • ${t('background_blank')})`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a4', 'blank')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle('Neue Seite (DIN A5 • Liniert)')
+					.setTitle(`${t('sidebar_new_page')} (${t('format_a5')} • ${t('background_ruled')})`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a5', 'ruled')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle('Neue Seite (DIN A3 • Kariert)')
+					.setTitle(`${t('sidebar_new_page')} (${t('format_a3')} • ${t('background_grid')})`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a3', 'grid')),
 			);
@@ -694,39 +698,39 @@ export class DrawingView extends TextFileView {
 				this.plugin.settings.defaultBackground = bg;
 				await this.plugin.saveSettings();
 				this.renderToolbar();
-				new Notice(`Standard-Layout für neue Seiten auf ${label} gesetzt`);
+				new Notice(`${t('settings_default_format')}: ${label}`);
 			};
 
 			menu.addItem((item) =>
 				item
-					.setTitle(`Standard für '+ Seite': DIN A4 Liniert`)
+					.setTitle(`${t('settings_default_format')}: DIN A4 ${t('background_ruled')}`)
 					.setIcon(curFormat === 'A4' && curBg === 'ruled' ? 'check' : 'settings')
 					.onClick(() => {
-						void setAsDefault('a4', 'ruled', 'DIN A4 Liniert');
+						void setAsDefault('a4', 'ruled', `DIN A4 ${t('background_ruled')}`);
 					}),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`Standard für '+ Seite': DIN A4 Kariert`)
+					.setTitle(`${t('settings_default_format')}: DIN A4 ${t('background_grid')}`)
 					.setIcon(curFormat === 'A4' && curBg === 'grid' ? 'check' : 'settings')
 					.onClick(() => {
-						void setAsDefault('a4', 'grid', 'DIN A4 Kariert');
+						void setAsDefault('a4', 'grid', `DIN A4 ${t('background_grid')}`);
 					}),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`Standard für '+ Seite': DIN A4 Gepunktet`)
+					.setTitle(`${t('settings_default_format')}: DIN A4 ${t('background_dotted')}`)
 					.setIcon(curFormat === 'A4' && curBg === 'dotted' ? 'check' : 'settings')
 					.onClick(() => {
-						void setAsDefault('a4', 'dotted', 'DIN A4 Gepunktet');
+						void setAsDefault('a4', 'dotted', `DIN A4 ${t('background_dotted')}`);
 					}),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`Standard für '+ Seite': DIN A4 Blanko`)
+					.setTitle(`${t('settings_default_format')}: DIN A4 ${t('background_blank')}`)
 					.setIcon(curFormat === 'A4' && curBg === 'blank' ? 'check' : 'settings')
 					.onClick(() => {
-						void setAsDefault('a4', 'blank', 'DIN A4 Blanko');
+						void setAsDefault('a4', 'blank', `DIN A4 ${t('background_blank')}`);
 					}),
 			);
 
@@ -734,12 +738,12 @@ export class DrawingView extends TextFileView {
 
 			menu.addItem((item) =>
 				item
-					.setTitle('Standard-Layout anpassen...')
+					.setTitle(`${t('settings_default_format')}...`)
 					.setIcon('sliders')
 					.onClick(() => {
 						new DefaultPageSettingsModal(this.plugin.app, this.plugin, () => {
 							this.renderToolbar();
-							new Notice('Standard-Seiteneinstellungen aktualisiert');
+							new Notice(t('notice_saved'));
 						}).open();
 					}),
 			);
@@ -747,7 +751,7 @@ export class DrawingView extends TextFileView {
 			if (this.activePageId) {
 				menu.addItem((item) =>
 					item
-						.setTitle('Aktuelle Seite anpassen...')
+						.setTitle(`${t('sidebar_change_format_bg')}...`)
 						.setIcon('file-edit')
 						.onClick(() => {
 							if (this.activePageId) {
@@ -771,7 +775,7 @@ export class DrawingView extends TextFileView {
 
 		const undoBtn = historyGroup.createEl('button', {
 			cls: 'betternotebook-action-btn',
-			title: 'Rückgängig (Undo)',
+			title: t('toolbar_undo'),
 		});
 		setIcon(undoBtn, 'undo-2');
 		undoBtn.addEventListener('click', () => {
@@ -784,7 +788,7 @@ export class DrawingView extends TextFileView {
 
 		const redoBtn = historyGroup.createEl('button', {
 			cls: 'betternotebook-action-btn',
-			title: 'Wiederholen (Redo)',
+			title: t('toolbar_redo'),
 		});
 		setIcon(redoBtn, 'redo-2');
 		redoBtn.addEventListener('click', () => {
@@ -802,7 +806,7 @@ export class DrawingView extends TextFileView {
 
 		const zoomOutBtn = zoomGroup.createEl('button', {
 			cls: 'betternotebook-action-btn',
-			title: 'Verkleinern (Zoom -)',
+			title: t('toolbar_zoom_out'),
 		});
 		setIcon(zoomOutBtn, 'minus');
 		zoomOutBtn.addEventListener('click', () => {
@@ -811,7 +815,7 @@ export class DrawingView extends TextFileView {
 
 		this.zoomBadgeEl = zoomGroup.createSpan({
 			cls: 'betternotebook-zoom-badge',
-			title: 'Zoom zurücksetzen (100%)',
+			title: '100%',
 		});
 		this.zoomBadgeEl.setText(`${Math.round((this.zoomController?.zoom ?? 1.0) * 100)}%`);
 		this.zoomBadgeEl.addEventListener('click', () => {
@@ -820,7 +824,7 @@ export class DrawingView extends TextFileView {
 
 		const zoomInBtn = zoomGroup.createEl('button', {
 			cls: 'betternotebook-action-btn',
-			title: 'Vergrößern (Zoom +)',
+			title: t('toolbar_zoom_in'),
 		});
 		setIcon(zoomInBtn, 'plus');
 		zoomInBtn.addEventListener('click', () => {
@@ -834,13 +838,13 @@ export class DrawingView extends TextFileView {
 
 		this.saveStatusEl = saveGroup.createDiv({
 			cls: 'betternotebook-save-status',
-			title: 'Automatisches Speichern aktiv',
+			title: t('notice_saved'),
 		});
 		this.updateSaveStatus('saved');
 
 		const saveBtn = saveGroup.createEl('button', {
 			cls: 'betternotebook-action-btn',
-			title: 'Jetzt sofort speichern (Autosave ist auch aktiv)',
+			title: t('toolbar_save_now'),
 		});
 		setIcon(saveBtn, 'save');
 		saveBtn.addEventListener('click', () => {
@@ -1041,10 +1045,10 @@ export class DrawingView extends TextFileView {
 
 		const btn = this.bottomAddButtonEl.createEl('button', {
 			cls: 'betternotebook-bottom-add-btn',
-			title: 'Neue Seite anhängen',
+			title: t('sidebar_new_page'),
 		});
 		setIcon(btn, 'plus');
-		btn.createSpan({ text: 'Neue Seite hinzufügen' });
+		btn.createSpan({ text: t('sidebar_new_page') });
 		btn.addEventListener('click', () => {
 			this.addNewPage();
 		});
@@ -1136,7 +1140,7 @@ export class DrawingView extends TextFileView {
 			this.scrollToPage(newPage.id);
 		}, 30);
 
-		new Notice(`Seite ${newPage.pageNumber} hinzugefügt`);
+		new Notice(`${t('sidebar_page')} ${newPage.pageNumber} (${t('notice_page_added')})`);
 		return newPage;
 	}
 
@@ -1152,7 +1156,7 @@ export class DrawingView extends TextFileView {
 
 		const deleted = this.engine.deletePage(pageId);
 		if (!deleted) {
-			new Notice('Die letzte verbleibende Seite kann nicht gelöscht werden.');
+			new Notice(t('sidebar_cannot_delete_last'));
 			return;
 		}
 
@@ -1169,7 +1173,7 @@ export class DrawingView extends TextFileView {
 		this.scheduleSave();
 		this.updateBottomAddButton();
 		this.zoomController?.updateLayout();
-		new Notice('Seite gelöscht');
+		new Notice(t('sidebar_delete_page'));
 	}
 
 	public duplicatePage(pageId: string): void {
@@ -1190,7 +1194,7 @@ export class DrawingView extends TextFileView {
 			window.setTimeout(() => {
 				this.scrollToPage(duplicated.id);
 			}, 30);
-			new Notice(`Seite ${duplicated.pageNumber} dupliziert`);
+			new Notice(`${t('sidebar_page')} ${duplicated.pageNumber} (${t('sidebar_duplicate_page')})`);
 		}
 	}
 
@@ -1243,7 +1247,7 @@ export class DrawingView extends TextFileView {
 		}
 
 		if (this.pageIndicatorEl) {
-			this.pageIndicatorEl.setText(`Seite ${currentIdx + 1} / ${total}`);
+			this.pageIndicatorEl.setText(`${t('sidebar_page')} ${currentIdx + 1} / ${total}`);
 		}
 		if (this.prevPageBtn) {
 			this.prevPageBtn.disabled = currentIdx <= 0;
@@ -1262,7 +1266,7 @@ export class DrawingView extends TextFileView {
 		pages.forEach((p) => {
 			menu.addItem((item) =>
 				item
-					.setTitle(`Seite ${p.pageNumber}${p.group ? ` • ${p.group}` : ''}`)
+					.setTitle(`${t('sidebar_page')} ${p.pageNumber}${p.group ? ` • ${p.group}` : ''}`)
 					.setIcon(p.id === this.activePageId ? 'check' : 'file')
 					.onClick(() => {
 						this.scrollToPage(p.id);
@@ -1336,11 +1340,11 @@ export class DrawingView extends TextFileView {
 
 		if (enabled) {
 			new Notice(
-				'Stift-Modus (Handflächenschutz) aktiviert:\nNur der Stift zeichnet. Hand & Finger können scrollen und zoomen.',
+				t('notice_stylus_only_on'),
 				3000,
 			);
 		} else {
-			new Notice('Stift-Modus deaktiviert:\nFreies Zeichnen mit Stift und Fingern.', 2500);
+			new Notice(t('notice_stylus_only_off'), 2500);
 		}
 	}
 
@@ -1353,8 +1357,8 @@ export class DrawingView extends TextFileView {
 		this.plugin.settings.smoothingFactor = smoothing;
 		void this.plugin.saveSettings();
 		this.pageCanvases.forEach((pc) => pc.setStyle({ smoothing }));
-		const label = smoothing === 0 ? 'Deaktiviert' : smoothing > 0.5 ? 'Hoch' : 'Natürlich';
-		new Notice(`Stift-Glättung: ${label}`, 1500);
+		const label = smoothing === 0 ? '0' : smoothing > 0.5 ? t('popover_size_broad') : t('popover_size_medium');
+		new Notice(`${t('popover_pen_smoothing')}: ${label}`, 1500);
 	}
 
 	private renderSizeSlots(): void {
@@ -1377,7 +1381,7 @@ export class DrawingView extends TextFileView {
 				const isActive = activeIdx === idx;
 				const btn = this.sizeSlotsGroupEl!.createEl('button', {
 					cls: `betternotebook-width-btn ${isActive ? 'is-active' : ''}`,
-					title: `Radierer-Größe ${idx + 1}: ${Math.round(radius)}px (Klicken zum Auswählen, erneut klicken zum Einstellen)`,
+					title: `${t('popover_eraser_size')} ${idx + 1}: ${Math.round(radius)}px`,
 				});
 
 				const dot = btn.createDiv({
@@ -1415,7 +1419,7 @@ export class DrawingView extends TextFileView {
 				const isActive = activeIdx === idx;
 				const btn = this.sizeSlotsGroupEl!.createEl('button', {
 					cls: `betternotebook-width-btn ${isActive ? 'is-active' : ''}`,
-					title: `Strichstärke ${idx + 1}: ${width.toFixed(1)}px (Klicken zum Auswählen, erneut klicken zum Einstellen)`,
+					title: `${t('settings_default_width')} ${idx + 1}: ${width.toFixed(1)}px`,
 				});
 
 				const dot = btn.createDiv({
@@ -2014,7 +2018,7 @@ export class DrawingView extends TextFileView {
 			// New notebook
 			menu.addItem((item) =>
 				item
-					.setTitle('Neues Notizbuch erstellen...')
+					.setTitle(`${t('command_create_new_notebook')}...`)
 					.setIcon('plus')
 					.onClick(() => {
 						this.promptCreateNewNotebook();
@@ -2024,7 +2028,7 @@ export class DrawingView extends TextFileView {
 			// Rename current notebook
 			menu.addItem((item) =>
 				item
-					.setTitle('Notizbuch umbenennen...')
+					.setTitle(`${t('sidebar_rename_page')}...`)
 					.setIcon('edit')
 					.onClick(() => {
 						this.promptRenameNotebook();
@@ -2038,9 +2042,9 @@ export class DrawingView extends TextFileView {
 	public promptCreateNewNotebook(): void {
 		const modal = new PromptModal(
 			this.app,
-			'Neues Notizbuch erstellen',
+			t('command_create_new_notebook'),
 			'',
-			'z. B. Mathe, Biologie, Notizen...',
+			'...',
 			(name) => {
 				void (async () => {
 					const trimmed = name.trim();
@@ -2053,7 +2057,7 @@ export class DrawingView extends TextFileView {
 					await this.plugin.saveSettings();
 
 					await this.leaf.openFile(newFile);
-					new Notice(`Neues Notizbuch "${trimmed}" erstellt`);
+					new Notice(`${t('command_create_new_notebook')}: "${trimmed}"`);
 				})();
 			},
 		);
@@ -2065,9 +2069,9 @@ export class DrawingView extends TextFileView {
 		const currentTitle = this.file.basename;
 		const modal = new PromptModal(
 			this.app,
-			'Notizbuch umbenennen',
+			t('sidebar_rename_page'),
 			currentTitle,
-			'Neuer Name:',
+			'',
 			(newName) => {
 				void (async () => {
 					const trimmed = newName.trim();

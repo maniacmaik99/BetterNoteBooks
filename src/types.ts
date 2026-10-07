@@ -162,6 +162,7 @@ export interface BetterNotebookSettings {
 	penActiveSlotIndex: number;
 	eraserRadiusSlots: [number, number];
 	eraserActiveSlotIndex: number;
+	language: string;
 }
 
 export const DEFAULT_PALETTE_COLORS = [
@@ -201,4 +202,5 @@ export const DEFAULT_SETTINGS: BetterNotebookSettings = {
 	penActiveSlotIndex: 0,
 	eraserRadiusSlots: [12, 28],
 	eraserActiveSlotIndex: 0,
+	language: 'auto',
 };

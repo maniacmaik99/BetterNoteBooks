@@ -11,6 +11,7 @@ import {
 	DEFAULT_LASSO_FILTER,
 	DEFAULT_PALETTE_COLORS,
 } from '../types';
+import { t } from '../i18n';
 import {
 	isStrokeSelectedByLasso,
 	isImageSelectedByLasso,
@@ -670,10 +671,10 @@ export class LassoManager {
 		// 1. Color Picker Button
 		const colorBtn = this.floatingBarEl.createEl('button', {
 			cls: 'betternotebook-lasso-action-btn',
-			title: 'Farbe der Auswahl ändern',
+			title: t('lasso_change_color'),
 		});
 		setIcon(colorBtn, 'palette');
-		colorBtn.createSpan({ text: 'Farbe' });
+		colorBtn.createSpan({ text: t('lasso_change_color') });
 		colorBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 		colorBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
@@ -683,10 +684,10 @@ export class LassoManager {
 		// 2. Duplicate Button
 		const dupBtn = this.floatingBarEl.createEl('button', {
 			cls: 'betternotebook-lasso-action-btn',
-			title: 'Auswahl duplizieren (+30px Offset)',
+			title: t('lasso_duplicate'),
 		});
 		setIcon(dupBtn, 'copy');
-		dupBtn.createSpan({ text: 'Duplizieren' });
+		dupBtn.createSpan({ text: t('lasso_duplicate') });
 		dupBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 		dupBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
@@ -696,10 +697,10 @@ export class LassoManager {
 		// 3. Copy Button (Clipboard)
 		const copyBtn = this.floatingBarEl.createEl('button', {
 			cls: 'betternotebook-lasso-action-btn',
-			title: 'In Zwischenablage kopieren',
+			title: t('lasso_copy'),
 		});
 		setIcon(copyBtn, 'clipboard');
-		copyBtn.createSpan({ text: 'Kopieren' });
+		copyBtn.createSpan({ text: t('lasso_copy') });
 		copyBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 		copyBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
@@ -710,10 +711,10 @@ export class LassoManager {
 		if (LassoManager.clipboard) {
 			const pasteBtn = this.floatingBarEl.createEl('button', {
 				cls: 'betternotebook-lasso-action-btn',
-				title: 'Kopierte Elemente einfügen',
+				title: t('lasso_paste'),
 			});
 			setIcon(pasteBtn, 'clipboard-paste');
-			pasteBtn.createSpan({ text: 'Einfügen' });
+			pasteBtn.createSpan({ text: t('lasso_paste') });
 			pasteBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 			pasteBtn.addEventListener('click', (e) => {
 				e.stopPropagation();
@@ -724,10 +725,10 @@ export class LassoManager {
 		// 4. Delete Button
 		const delBtn = this.floatingBarEl.createEl('button', {
 			cls: 'betternotebook-lasso-action-btn is-danger',
-			title: 'Ausgewählte Elemente löschen',
+			title: t('lasso_delete'),
 		});
 		setIcon(delBtn, 'trash-2');
-		delBtn.createSpan({ text: 'Löschen' });
+		delBtn.createSpan({ text: t('lasso_delete') });
 		delBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 		delBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
@@ -790,7 +791,7 @@ export class LassoManager {
 
 		this.callbacks.redrawAll();
 		this.callbacks.onPageChanged();
-		new Notice('Farbe der Auswahl angepasst', 1500);
+		new Notice(t('lasso_color_applied'), 1500);
 	}
 
 	public duplicateSelection(): void {
@@ -825,7 +826,7 @@ export class LassoManager {
 			this.renderSelectionUI();
 		}
 
-		new Notice('Auswahl dupliziert', 1500);
+		new Notice(t('lasso_duplicate'), 1500);
 	}
 
 	public copySelectionToClipboard(): void {
@@ -845,7 +846,7 @@ export class LassoManager {
 
 		const count = duplicatedStrokes.length + duplicatedImages.length;
 		new Notice(
-			`${count} Elemente kopiert. Halte mit Stift/Finger gedrückt oder nutze 'Einfügen' / Strg+V.`,
+			`${count} ${t('lasso_items_copied')}`,
 			2500,
 		);
 
@@ -871,12 +872,11 @@ export class LassoManager {
 		this.callbacks.renderImages();
 		this.callbacks.redrawAll();
 		this.callbacks.onPageChanged();
-		new Notice('Ausgewählte Elemente gelöscht', 1500);
+		new Notice(t('lasso_deleted_notice'), 1500);
 	}
 
 	public pasteClipboard(targetCenter?: { x: number; y: number }): boolean {
 		if (!LassoManager.clipboard) {
-			new Notice('Zwischenablage ist leer');
 			return false;
 		}
 
@@ -925,7 +925,7 @@ export class LassoManager {
 		}
 
 		const count = duplicatedStrokes.length + duplicatedImages.length;
-		new Notice(`${count} Elemente eingefügt`, 1500);
+		new Notice(`${count} ${t('lasso_pasted_notice')}`, 1500);
 		return true;
 	}
 }
