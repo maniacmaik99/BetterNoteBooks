@@ -1,8 +1,1321 @@
-/*
+/* betterNotebook Palette styles */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.betternotebook-view-root {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	background-color: var(--background-primary);
+	user-select: none;
+}
 
-If your plugin does not need CSS, delete this file.
+/* ----------------------------------------------------
+   Toolbar
+---------------------------------------------------- */
+.betternotebook-toolbar {
+	display: flex;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	overflow-y: hidden;
+	align-items: center;
+	gap: 12px;
+	padding: 6px 14px;
+	background-color: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+	z-index: 20;
+	scrollbar-width: thin;
+}
 
-*/
+.betternotebook-toolbar-group {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+}
+
+.betternotebook-toolbar-group.tools,
+.betternotebook-toolbar-group.colors,
+.betternotebook-toolbar-group.stroke-widths,
+.betternotebook-toolbar-group.insert,
+.betternotebook-toolbar-group.page-controls,
+.betternotebook-toolbar-group.history {
+	border-right: 1px solid var(--background-modifier-border);
+	padding-right: 10px;
+}
+
+.betternotebook-tool-btn,
+.betternotebook-action-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	min-width: 32px;
+	min-height: 32px;
+	padding: 0;
+	border-radius: var(--radius-m);
+	background: transparent;
+	border: 1px solid transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.betternotebook-tool-btn svg,
+.betternotebook-action-btn svg {
+	width: 18px;
+	height: 18px;
+	display: block;
+}
+
+.betternotebook-action-btn.with-text {
+	width: auto;
+	min-width: auto;
+	padding: 0 10px;
+	gap: 6px;
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.betternotebook-action-btn.small-caret {
+	width: 22px;
+	min-width: 22px;
+	height: 32px;
+	padding: 0;
+	margin-left: -4px;
+}
+
+.betternotebook-action-btn.small-caret svg {
+	width: 14px;
+	height: 14px;
+}
+
+.betternotebook-tool-btn:hover,
+.betternotebook-action-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-tool-btn.is-active {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.betternotebook-toolbar-separator {
+	display: inline-block;
+	width: 1px;
+	height: 18px;
+	background-color: var(--background-modifier-border);
+	margin: 0 3px;
+	flex-shrink: 0;
+}
+
+.betternotebook-tool-btn.has-stylus-mode::after {
+	content: '';
+	position: absolute;
+	bottom: 3px;
+	right: 3px;
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background-color: var(--interactive-accent);
+}
+
+/* Color Palette */
+.betternotebook-color-palette-inner {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	flex-shrink: 0;
+}
+
+.betternotebook-color-btn {
+	-webkit-appearance: none !important;
+	appearance: none !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 24px !important;
+	height: 24px !important;
+	min-width: 24px !important;
+	min-height: 24px !important;
+	max-width: 24px !important;
+	max-height: 24px !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	aspect-ratio: 1 / 1 !important;
+	border-radius: 50% !important;
+	border: 2px solid var(--background-primary) !important;
+	outline: none !important;
+	cursor: pointer;
+	flex-shrink: 0 !important;
+	align-self: center !important;
+	box-sizing: border-box !important;
+	box-shadow: 0 0 0 1px var(--background-modifier-border);
+	transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
+	line-height: 1 !important;
+	overflow: hidden !important;
+}
+
+.betternotebook-color-btn:hover {
+	transform: scale(1.14);
+	box-shadow: 0 0 0 1.5px var(--interactive-accent);
+}
+
+.betternotebook-color-btn.is-active {
+	transform: scale(1.18);
+	box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--interactive-accent) !important;
+	z-index: 1;
+}
+
+.betternotebook-add-color-btn {
+	-webkit-appearance: none !important;
+	appearance: none !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 24px !important;
+	height: 24px !important;
+	min-width: 24px !important;
+	min-height: 24px !important;
+	max-width: 24px !important;
+	max-height: 24px !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	aspect-ratio: 1 / 1 !important;
+	border-radius: 50% !important;
+	border: 1.5px dashed var(--interactive-accent) !important;
+	background: transparent !important;
+	color: var(--interactive-accent) !important;
+	cursor: pointer;
+	outline: none !important;
+	flex-shrink: 0 !important;
+	align-self: center !important;
+	box-sizing: border-box !important;
+	transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+	line-height: 1 !important;
+}
+
+.betternotebook-add-color-btn:hover {
+	background-color: var(--background-modifier-hover) !important;
+	transform: scale(1.14);
+}
+
+.betternotebook-add-color-btn svg {
+	width: 13px !important;
+	height: 13px !important;
+	display: block;
+}
+
+/* Width buttons */
+.betternotebook-width-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	min-width: 28px;
+	min-height: 28px;
+	padding: 0;
+	border-radius: var(--radius-m);
+	background: transparent;
+	border: 1px solid transparent;
+	cursor: pointer;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.betternotebook-width-btn:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.betternotebook-width-btn.is-active {
+	background-color: var(--background-modifier-active-hover);
+	border-color: var(--interactive-accent);
+}
+
+.betternotebook-width-dot {
+	background-color: var(--text-normal);
+	border-radius: 50%;
+}
+
+/* ----------------------------------------------------
+   Workspace Layout (Sidebar + Multi-Page View)
+---------------------------------------------------- */
+.betternotebook-workspace {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	position: relative;
+}
+
+.betternotebook-workspace.sidebar-hidden .betternotebook-sidebar {
+	display: none;
+}
+
+/* ----------------------------------------------------
+   Sidebar (Topics & Page Groups)
+---------------------------------------------------- */
+.betternotebook-sidebar {
+	width: 270px;
+	min-width: 250px;
+	max-width: 320px;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	background-color: var(--background-secondary);
+	border-right: 1px solid var(--background-modifier-border);
+	z-index: 15;
+}
+
+.betternotebook-sidebar-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.betternotebook-sidebar-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.betternotebook-sidebar-icon-btn {
+	width: 26px;
+	height: 26px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border-radius: var(--radius-s);
+	background: transparent;
+	border: none;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.betternotebook-sidebar-icon-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-sidebar-filters {
+	padding: 10px 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.betternotebook-search-container {
+	position: relative;
+	width: 100%;
+}
+
+.betternotebook-search-input {
+	width: 100%;
+	padding: 6px 10px;
+	font-size: 12px;
+	border-radius: var(--radius-s);
+	border: 1px solid var(--background-modifier-border);
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	box-sizing: border-box;
+}
+
+.betternotebook-search-input:focus {
+	border-color: var(--interactive-accent);
+	outline: none;
+}
+
+.betternotebook-group-suggestions-dropdown {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	right: 0;
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+	z-index: 50;
+	max-height: 220px;
+	overflow-y: auto;
+	display: none;
+}
+
+.betternotebook-group-suggestions-dropdown.is-open {
+	display: block;
+}
+
+.betternotebook-suggestions-header {
+	padding: 6px 10px;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.betternotebook-suggestion-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 10px;
+	font-size: 12px;
+	color: var(--text-normal);
+	cursor: pointer;
+	transition: background-color 0.1s ease;
+}
+
+.betternotebook-suggestion-item:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.betternotebook-suggestion-item.is-active {
+	background-color: var(--background-modifier-active-hover);
+	color: var(--interactive-accent);
+	font-weight: 600;
+}
+
+.betternotebook-suggestion-item.new-group-action {
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--interactive-accent);
+	font-weight: 500;
+}
+
+.betternotebook-suggestion-count {
+	font-size: 11px;
+	color: var(--text-muted);
+	background-color: var(--background-primary);
+	padding: 1px 6px;
+	border-radius: 10px;
+}
+
+.betternotebook-active-filter-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.betternotebook-active-filter-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 8px;
+	font-size: 11px;
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-radius: 12px;
+	font-weight: 500;
+}
+
+.betternotebook-clear-filter-btn {
+	cursor: pointer;
+	font-weight: bold;
+	padding: 0 2px;
+	opacity: 0.85;
+}
+
+.betternotebook-clear-filter-btn:hover {
+	opacity: 1;
+}
+
+.betternotebook-badge.add-group {
+	border-style: dashed;
+	cursor: pointer;
+	color: var(--text-muted);
+	background: transparent;
+}
+
+.betternotebook-badge.add-group:hover {
+	color: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+}
+
+.betternotebook-group-suggestions-chips {
+	margin-top: 8px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.betternotebook-suggestions-label {
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.betternotebook-chip {
+	font-size: 11px;
+	padding: 3px 8px;
+	border-radius: 12px;
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.betternotebook-chip:hover {
+	border-color: var(--text-muted);
+	color: var(--text-normal);
+}
+
+.betternotebook-chip.is-active {
+	background-color: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.betternotebook-sidebar-page-list {
+	flex: 1;
+	overflow-y: auto;
+	padding: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.betternotebook-empty-state {
+	padding: 20px 10px;
+	text-align: center;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.betternotebook-page-card {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 8px 10px;
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	cursor: pointer;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.betternotebook-page-card:hover {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.betternotebook-page-card.is-active {
+	border-color: var(--interactive-accent);
+	background-color: var(--background-modifier-active-hover);
+	box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+.betternotebook-page-card-info {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	overflow: hidden;
+}
+
+.betternotebook-page-card-title {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.betternotebook-page-card-badges {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.betternotebook-badge {
+	font-size: 10px;
+	padding: 1px 6px;
+	border-radius: 4px;
+	font-weight: 500;
+}
+
+.betternotebook-badge.format {
+	background-color: var(--background-secondary);
+	color: var(--text-muted);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.betternotebook-badge.group {
+	background-color: rgba(33, 85, 205, 0.12);
+	color: var(--interactive-accent);
+	cursor: pointer;
+}
+
+.betternotebook-page-card-actions {
+	display: flex;
+	gap: 3px;
+	align-items: center;
+}
+
+.betternotebook-card-btn {
+	width: 24px;
+	height: 24px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	border-radius: var(--radius-s);
+	cursor: pointer;
+}
+
+.betternotebook-card-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-card-btn.delete:hover {
+	color: #ef4444;
+}
+
+/* ----------------------------------------------------
+   Vertical Multi-Page Scroll View
+---------------------------------------------------- */
+.betternotebook-scroll-container {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	width: 100%;
+	height: 100%;
+	overflow-y: auto;
+	overflow-x: auto;
+	background-color: #f1f3f5;
+	-webkit-overflow-scrolling: touch;
+	position: relative;
+	touch-action: pan-x pan-y pinch-zoom;
+}
+
+.theme-dark .betternotebook-scroll-container {
+	background-color: #141414;
+}
+
+.betternotebook-zoom-sizer {
+	position: relative;
+	min-width: 100%;
+	min-height: 100%;
+	display: block;
+}
+
+.betternotebook-zoom-content {
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 48px;
+	transform-origin: 0 0;
+}
+
+/* Zoom Toolbar Controls */
+.betternotebook-toolbar-group.zoom-controls {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.betternotebook-zoom-badge {
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 7px;
+	min-width: 44px;
+	text-align: center;
+	border-radius: var(--radius-s);
+	background-color: var(--background-modifier-hover);
+	color: var(--text-muted);
+	cursor: pointer;
+	user-select: none;
+	transition: all 0.15s ease;
+	line-height: 20px;
+}
+
+.betternotebook-zoom-badge:hover {
+	background-color: var(--background-modifier-active-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-bottom-add-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
+	padding: 16px 0 60px 0;
+	flex-shrink: 0;
+}
+
+.betternotebook-bottom-add-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 28px;
+	background-color: var(--background-secondary);
+	border: 1.5px dashed var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	color: var(--text-muted);
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.betternotebook-bottom-add-btn svg {
+	width: 16px;
+	height: 16px;
+}
+
+.betternotebook-bottom-add-btn:hover {
+	border-color: var(--interactive-accent);
+	color: var(--interactive-accent);
+	background-color: var(--background-modifier-hover);
+	transform: translateY(-1px);
+}
+
+.betternotebook-page {
+	position: relative;
+	background-color: #ffffff;
+	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+	border-radius: 3px;
+	flex-shrink: 0;
+}
+
+.betternotebook-page-header {
+	position: absolute;
+	top: -24px;
+	left: 4px;
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--text-muted);
+	letter-spacing: 0.3px;
+}
+
+.betternotebook-canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	touch-action: none;
+	cursor: crosshair;
+	border-radius: 3px;
+}
+
+/* ----------------------------------------------------
+   Shape Handles Overlay
+---------------------------------------------------- */
+.betternotebook-shape-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 8;
+}
+
+.betternotebook-shape-handle {
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	transform: translate(-50%, -50%);
+	border-radius: 50%;
+	background-color: #ffffff;
+	border: 2.5px solid var(--interactive-accent);
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+	cursor: grab;
+	pointer-events: auto;
+	transition: transform 0.1s ease;
+	z-index: 10;
+}
+
+.betternotebook-shape-handle:hover,
+.betternotebook-shape-handle.is-dragging {
+	transform: translate(-50%, -50%) scale(1.4);
+	background-color: var(--interactive-accent);
+	cursor: grabbing;
+}
+
+.betternotebook-shape-handle.role-mid {
+	border-color: #10b981;
+	border-radius: 3px;
+}
+
+.betternotebook-shape-handle.role-radius {
+	border-color: #8b5cf6;
+	background-color: #f5f3ff;
+}
+
+.betternotebook-shape-handle::after {
+	content: '';
+	position: absolute;
+	top: -8px;
+	left: -8px;
+	right: -8px;
+	bottom: -8px;
+}
+
+/* Floating Action Bar above or below selected shape */
+.betternotebook-shape-floating-bar {
+	position: absolute;
+	transform: translate(-50%, -100%);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+	border-radius: 20px;
+	padding: 3px 6px;
+	pointer-events: auto;
+	z-index: 25;
+	white-space: nowrap;
+	animation: shapeBarFadeIn 0.15s ease-out;
+}
+
+.betternotebook-shape-floating-bar.is-flipped-below {
+	transform: translate(-50%, 0);
+}
+
+@keyframes shapeBarFadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.betternotebook-shape-bar-btn {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	border-radius: 12px;
+	padding: 4px 8px;
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--text-normal);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.betternotebook-shape-bar-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-accent);
+}
+
+.betternotebook-shape-bar-btn.is-active {
+	background-color: var(--background-modifier-active-hover);
+	color: var(--interactive-accent);
+}
+
+.betternotebook-shape-bar-btn.is-danger:hover {
+	background-color: rgba(220, 38, 38, 0.15);
+	color: #dc2626;
+}
+
+.betternotebook-shape-bar-sep {
+	width: 1px;
+	height: 14px;
+	background-color: var(--background-modifier-border);
+	margin: 0 2px;
+}
+
+.betternotebook-shape-modal-actions {
+	margin-top: 24px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+/* ----------------------------------------------------
+   Image Overlay & Resize
+---------------------------------------------------- */
+.betternotebook-image-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.betternotebook-image-wrapper {
+	position: absolute;
+	user-select: none;
+	box-sizing: border-box;
+	touch-action: none;
+}
+
+.betternotebook-image-wrapper.is-unlocked {
+	pointer-events: auto;
+	cursor: move;
+}
+
+.betternotebook-image-wrapper.is-unlocked:hover,
+.betternotebook-image-wrapper.is-unlocked.is-selected {
+	outline: 2px dashed var(--interactive-accent);
+}
+
+.betternotebook-image-wrapper.is-locked {
+	pointer-events: none !important;
+	outline: none !important;
+}
+
+.betternotebook-image-delete-btn {
+	position: absolute;
+	top: -10px;
+	right: -10px;
+	width: 22px;
+	height: 22px;
+	background-color: #ef4444;
+	color: #ffffff;
+	border-radius: 50%;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: bold;
+	cursor: pointer;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	z-index: 10;
+}
+
+.betternotebook-image-lock-btn {
+	position: absolute;
+	top: -10px;
+	right: 18px;
+	width: 22px;
+	height: 22px;
+	background-color: var(--interactive-accent);
+	color: #ffffff;
+	border-radius: 50%;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	z-index: 10;
+	pointer-events: auto;
+	touch-action: none;
+}
+
+.betternotebook-image-lock-badge {
+	position: absolute;
+	top: -10px;
+	right: -10px;
+	width: 24px;
+	height: 24px;
+	background-color: rgba(15, 23, 42, 0.85);
+	color: #ffffff;
+	border: 1.5px solid var(--interactive-accent);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+	z-index: 10;
+	pointer-events: none;
+	touch-action: none;
+	opacity: 0;
+	transform: scale(0.8);
+	transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+}
+
+.betternotebook-image-lock-badge.is-visible {
+	opacity: 0.92;
+	pointer-events: auto !important;
+	transform: scale(1);
+}
+
+.betternotebook-image-lock-badge:hover {
+	opacity: 1 !important;
+	pointer-events: auto !important;
+	transform: scale(1.15);
+	background-color: var(--interactive-accent);
+}
+
+
+.betternotebook-image-resize-handle {
+	position: absolute;
+	bottom: -9px;
+	right: -9px;
+	width: 18px;
+	height: 18px;
+	background-color: var(--interactive-accent);
+	border: 2px solid #ffffff;
+	border-radius: 4px;
+	cursor: se-resize;
+	display: none;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	z-index: 10;
+	touch-action: none;
+}
+
+.betternotebook-image-crop-btn {
+	position: absolute;
+	top: -10px;
+	left: -10px;
+	width: 22px;
+	height: 22px;
+	background-color: var(--interactive-accent);
+	color: #ffffff;
+	border-radius: 50%;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	font-size: 11px;
+	cursor: pointer;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	z-index: 10;
+	pointer-events: auto;
+	touch-action: none;
+}
+
+.betternotebook-image-crop-btn svg,
+.betternotebook-image-delete-btn svg,
+.betternotebook-image-lock-btn svg,
+.betternotebook-image-lock-badge svg {
+	width: 12px;
+	height: 12px;
+	display: block;
+	pointer-events: none;
+}
+
+.betternotebook-image-wrapper.is-unlocked:hover .betternotebook-image-delete-btn,
+.betternotebook-image-wrapper.is-unlocked:hover .betternotebook-image-lock-btn,
+.betternotebook-image-wrapper.is-unlocked:hover .betternotebook-image-resize-handle,
+.betternotebook-image-wrapper.is-unlocked:hover .betternotebook-image-crop-btn,
+.betternotebook-image-wrapper.is-unlocked.is-selected .betternotebook-image-delete-btn,
+.betternotebook-image-wrapper.is-unlocked.is-selected .betternotebook-image-lock-btn,
+.betternotebook-image-wrapper.is-unlocked.is-selected .betternotebook-image-resize-handle,
+.betternotebook-image-wrapper.is-unlocked.is-selected .betternotebook-image-crop-btn {
+	display: flex;
+}
+
+/* ----------------------------------------------------
+   Image Crop Modal
+---------------------------------------------------- */
+.betternotebook-crop-modal-content {
+	min-width: 480px;
+	max-width: 640px;
+}
+
+.betternotebook-crop-desc {
+	margin-top: -6px;
+	margin-bottom: 14px;
+	font-size: 13px;
+	color: var(--text-muted);
+}
+
+.betternotebook-crop-stage-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	overflow: hidden;
+	user-select: none;
+}
+
+.betternotebook-crop-stage-wrapper {
+	position: relative;
+	display: inline-block;
+	overflow: hidden;
+	user-select: none;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.betternotebook-crop-source-img {
+	display: block;
+	user-select: none;
+	pointer-events: none;
+}
+
+.betternotebook-crop-box {
+	position: absolute;
+	border: 2px dashed #38bdf8;
+	box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+	cursor: move;
+	touch-action: none;
+	box-sizing: border-box;
+}
+
+.betternotebook-crop-handle {
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	background-color: #ffffff;
+	border: 2px solid #0284c7;
+	border-radius: 3px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	box-sizing: border-box;
+	touch-action: none;
+	z-index: 5;
+}
+
+.betternotebook-crop-handle.nw {
+	top: -7px;
+	left: -7px;
+	cursor: nwse-resize;
+}
+
+.betternotebook-crop-handle.ne {
+	top: -7px;
+	right: -7px;
+	cursor: nesw-resize;
+}
+
+.betternotebook-crop-handle.se {
+	bottom: -7px;
+	right: -7px;
+	cursor: nwse-resize;
+}
+
+.betternotebook-crop-handle.sw {
+	bottom: -7px;
+	left: -7px;
+	cursor: nesw-resize;
+}
+
+.betternotebook-crop-footer {
+	margin-top: 18px;
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+}
+
+/* ----------------------------------------------------
+   Eraser Cursor & Circular Overlay
+---------------------------------------------------- */
+.betternotebook-eraser-cursor {
+	position: absolute;
+	border: 2px solid rgba(239, 68, 68, 0.85);
+	background-color: rgba(239, 68, 68, 0.14);
+	border-radius: 50%;
+	pointer-events: none;
+	transform: translate(-50%, -50%);
+	z-index: 15;
+	box-sizing: border-box;
+}
+
+.betternotebook-eraser-cursor.is-active {
+	display: block;
+}
+
+.betternotebook-hidden-native-color {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+}
+
+/* ----------------------------------------------------
+   Page Counter & Navigation Badge
+---------------------------------------------------- */
+.betternotebook-page-counter-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px 10px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-normal);
+	background-color: var(--background-modifier-form-field);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	cursor: pointer;
+	user-select: none;
+	white-space: nowrap;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.betternotebook-page-counter-badge:hover {
+	background-color: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.betternotebook-action-btn.is-disabled,
+.betternotebook-action-btn:disabled {
+	opacity: 0.35;
+	cursor: not-allowed !important;
+	pointer-events: none;
+}
+
+/* ----------------------------------------------------
+   Color Picker Modal Styling
+---------------------------------------------------- */
+.betternotebook-modal {
+	padding: 18px 24px;
+}
+
+.betternotebook-color-picker-section {
+	margin-bottom: 20px;
+}
+
+.betternotebook-color-preview-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 10px;
+}
+
+.betternotebook-color-preview-swatch {
+	width: 36px;
+	height: 36px;
+	min-width: 36px;
+	min-height: 36px;
+	border-radius: 50%;
+	border: 2px solid var(--background-modifier-border);
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+	flex-shrink: 0;
+}
+
+.betternotebook-hex-input {
+	flex: 1;
+	max-width: 140px;
+	font-family: var(--font-monospace);
+	font-size: 14px;
+	text-transform: uppercase;
+}
+
+.betternotebook-picker-btn {
+	padding: 4px 14px;
+	font-size: 12px;
+}
+
+.betternotebook-color-group {
+	margin-top: 16px;
+}
+
+.betternotebook-color-group h4 {
+	margin: 0 0 8px 0;
+	font-size: 13px;
+	color: var(--text-muted);
+	font-weight: 600;
+}
+
+.betternotebook-color-swatches-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.betternotebook-swatch-item {
+	width: 26px;
+	height: 26px;
+	min-width: 26px;
+	min-height: 26px;
+	border-radius: 50%;
+	border: 2px solid var(--background-primary);
+	box-shadow: 0 0 0 1px var(--background-modifier-border);
+	cursor: pointer;
+	box-sizing: border-box;
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.betternotebook-swatch-item:hover {
+	transform: scale(1.22);
+	box-shadow: 0 0 0 2px var(--interactive-accent);
+}
+
+.betternotebook-modal-footer {
+	margin-top: 24px;
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+}
+
+.betternotebook-hidden-input {
+	display: none !important;
+}
+
+/* ----------------------------------------------------
+   Notebook Selector & Autosave Status
+---------------------------------------------------- */
+.betternotebook-notebook-selector-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 32px;
+	padding: 0 10px;
+	border-radius: var(--radius-m);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	max-width: 200px;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.betternotebook-notebook-selector-btn:hover {
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.betternotebook-notebook-title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 140px;
+}
+
+.betternotebook-save-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--text-muted);
+	padding: 2px 8px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	white-space: nowrap;
+	user-select: none;
+	transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.betternotebook-save-status.is-saving {
+	color: var(--text-accent);
+	border-color: var(--interactive-accent);
+}
+
+.betternotebook-save-status .betternotebook-save-icon svg {
+	width: 13px;
+	height: 13px;
+	display: block;
+}
+
+

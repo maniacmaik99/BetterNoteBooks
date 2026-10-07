@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-betternotebooks",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "GoodNotes-style handwriting, vector drawing, shapes, and multi-page notebooks with stylus palm rejection for Obsidian.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
@@ -10,8 +10,17 @@
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint ."
 	},
-	"keywords": [],
-	"license": "0-BSD",
+	"keywords": [
+		"obsidian",
+		"obsidian-plugin",
+		"drawing",
+		"handwriting",
+		"goodnotes",
+		"notebook"
+	],
+	"author": "Maik Schultheiß <mksc0228@hochschule-trier.de>",
+	"repository": "https://github.com/maniacmaik99/BetterNoteBooks",
+	"license": "MIT",
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",
 		"@types/node": "^22.15.17",

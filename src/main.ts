@@ -1,114 +1,172 @@
-import {
-	Editor,
-	MarkdownView,
-	MarkdownFileInfo,
-	Modal,
-	Notice,
-	Plugin,
-} from 'obsidian';
-import {
-	DEFAULT_SETTINGS,
-	MyPluginSettings,
-	SampleSettingTab,
-} from './settings';
+import { Plugin, WorkspaceLeaf, Notice, TFile } from 'obsidian';
+import { VIEW_TYPE_DRAWING, DrawingView } from './ui/drawing-view';
+import { BetterNotebookSettings, DEFAULT_SETTINGS } from './types';
+import { BetterNotebookSettingTab } from './settings';
+import { NotebookStore } from './storage/notebook-store';
 
-// Remember to rename these classes and interfaces!
+export { VIEW_TYPE_DRAWING };
 
-export default class MyPlugin extends Plugin {
-	settings!: MyPluginSettings;
+export default class BetterNotebookPlugin extends Plugin {
+	settings!: BetterNotebookSettings;
 
-	async onload() {
+	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+		this.registerView(
+			VIEW_TYPE_DRAWING,
+			(leaf) => new DrawingView(leaf, this),
+		);
+
+		this.registerExtensions(['bnp'], VIEW_TYPE_DRAWING);
+
+		this.addRibbonIcon('pencil', 'BetterNoteBooks öffnen', () => {
+			void this.activateView();
 		});
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
+			id: 'open-drawing-view',
+			name: 'BetterNoteBooks: Zeichenfläche öffnen',
 			callback: () => {
-				new SampleModal(this.app).open();
+				void this.activateView();
 			},
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
+
 		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (
-				editor: Editor,
-				_ctx: MarkdownView | MarkdownFileInfo,
-			) => {
-				editor.replaceSelection('Sample editor command');
+			id: 'create-new-notebook',
+			name: 'BetterNoteBooks: Neues Notizbuch erstellen',
+			callback: () => {
+				void (async () => {
+					const leaf = await this.activateView();
+					if (leaf?.view instanceof DrawingView) {
+						leaf.view.promptCreateNewNotebook();
+					}
+				})();
 			},
 		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
+
 		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
+			id: 'open-notebook-file',
+			name: 'BetterNoteBooks: Notizbuch aus Vault öffnen',
+			callback: () => {
+				void (async () => {
+					const store = new NotebookStore(this.app, this);
+					const files = await store.listNotebookFiles();
+					if (files.length === 0) {
+						new Notice('Keine gespeicherten Notizbücher im Vault gefunden.');
+						return;
 					}
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
+					const latest = files[0];
+					if (latest instanceof TFile) {
+						await this.activateView(latest);
+					}
+				})();
 			},
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		// Automatically open notebook files in BetterNoteBooks view when opened in vault
+		this.registerEvent(
+			this.app.workspace.on('file-open', (file) => {
+				if (file && (file.name.endsWith('.bnp') || file.name.endsWith('.bnp.json'))) {
+					void this.activateView(file);
+				}
+			}),
+		);
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(activeDocument, 'click', (_evt: MouseEvent) => {
-			new Notice('Click');
+		this.addCommand({
+			id: 'add-new-page',
+			name: 'BetterNoteBooks: Neue Seite hinzufügen',
+			callback: () => {
+				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
+				if (activeLeaf) {
+					activeLeaf.addNewPage();
+				} else {
+					void (async () => {
+						const leaf = await this.activateView();
+						if (leaf?.view instanceof DrawingView) {
+							leaf.view.addNewPage();
+						}
+					})();
+				}
+			},
 		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(
-			window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000),
-		);
+		this.addCommand({
+			id: 'toggle-eraser-mode',
+			name: 'BetterNoteBooks: Radiergummi-Modus umschalten (Strich / Präzision)',
+			callback: () => {
+				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
+				if (activeLeaf) {
+					activeLeaf.toggleEraserMode();
+				}
+			},
+		});
+
+		this.addCommand({
+			id: 'toggle-stylus-only-mode',
+			name: 'BetterNoteBooks: Stift-Modus umschalten (Handflächenschutz)',
+			callback: () => {
+				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
+				if (activeLeaf) {
+					activeLeaf.toggleStylusOnlyMode();
+				}
+			},
+		});
+
+		this.addCommand({
+			id: 'clear-active-page',
+			name: 'BetterNoteBooks: Aktuelle Seite leeren',
+			callback: () => {
+				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
+				if (activeLeaf) {
+					activeLeaf.clearActivePageStrokes();
+				}
+			},
+		});
+
+		this.addSettingTab(new BetterNotebookSettingTab(this.app, this));
 	}
 
-	onunload() {}
+	async activateView(file?: TFile): Promise<WorkspaceLeaf | null> {
+		const { workspace } = this.app;
 
-	async loadSettings() {
+		if (file) {
+			const leaves = workspace.getLeavesOfType(VIEW_TYPE_DRAWING);
+			for (const l of leaves) {
+				if (l.view instanceof DrawingView && l.view.file?.path === file.path) {
+					await workspace.revealLeaf(l);
+					return l;
+				}
+			}
+			const leaf = workspace.getLeaf('tab');
+			await leaf.openFile(file);
+			return leaf;
+		}
+
+		// Find existing open leaf
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE_DRAWING);
+		if (leaves.length > 0 && leaves[0]) {
+			await workspace.revealLeaf(leaves[0]);
+			return leaves[0];
+		}
+
+		// Resolve or create default/active notebook file
+		const store = new NotebookStore(this.app, this);
+		const targetFile = await store.resolveOrCreateActiveNotebook();
+		const leaf = workspace.getLeaf('tab');
+		await leaf.openFile(targetFile);
+		return leaf;
+	}
+
+	async loadSettings(): Promise<void> {
 		this.settings = Object.assign(
 			{},
 			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<MyPluginSettings>,
+			(await this.loadData()) as Partial<BetterNotebookSettings>,
 		);
 	}
 
-	async saveSettings() {
+	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
 	}
 }

@@ -1,92 +1,93 @@
-# Obsidian Sample Plugin
+# BetterNoteBooks for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+**BetterNoteBooks** is a powerful GoodNotes-style digital handwriting, vector drawing, and notebook plugin for [Obsidian](https://obsidian.md).
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+Organize multi-page digital notebooks directly in your Obsidian vault, draw with pressure-sensitive pens, highlight text, snap to geometric shapes, and write with complete palm rejection.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+---
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+## ✨ Features
 
-## First time developing plugins?
+- **📖 Native Notebook Management**:
+  - Save and organize multi-page notebooks directly in your Obsidian vault (`.bnp` format).
+  - Switch between notebooks or create new ones via the top navigation toolbar.
+  - Seamless integration into Obsidian's native file explorer and auto-save.
 
-Quick starting guide for new plugin devs:
+- **✍️ Natural Handwriting & Drawing**:
+  - Pressure-sensitive vector pen with smooth quadratic Bézier curves.
+  - Natural, high, or raw smoothing options.
+  - Zoom-adaptive stroke width: zoomed-in writing produces sharp, proportionally fine text.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+- **🖍️ Intelligent Highlighter**:
+  - Realistic transparency with `multiply` color blending.
+  - Highlighters are automatically layered *underneath* pen ink, just like in GoodNotes.
 
-## Releasing new releases
+- **📐 Shape Recognition (Draw and Hold)**:
+  - Draw a shape and hold the pen at the end to snap into clean geometric shapes:
+    - Straight lines & connected polylines
+    - Smooth arcs & circles
+    - Rectangles & squares (with optional filled highlighter boxes)
+    - Triangles
+  - Interactive control handles to adjust, resize, and fine-tune shapes after drawing.
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+- **✋ Stylus-Only Mode (Palm Rejection)**:
+  - Toggle stylus-only mode to prevent accidental palm marks.
+  - Write exclusively with your digital pen while using fingers to pan and pinch-to-zoom.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+- **📄 Multi-Page & Customizable Formats**:
+  - Page formats: A4, A5, A3, and US Letter.
+  - Orientation: Portrait & Landscape.
+  - Backgrounds: Ruled (lines), Grid (squares), Dotted, and Blank.
+  - Visual page sidebar with thumbnails to reorder, duplicate, or delete pages.
 
-## Adding your plugin to the community plugin list
+- **🖼️ Images & Annotations**:
+  - Paste images (Ctrl/Cmd+V) or drag-and-drop images directly onto any page.
+  - Move, resize, rotate, and annotate on top of images.
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+- **🎨 Expandable Color Palette**:
+  - Quick-access color swatches with one-click selection.
+  - Custom color picker (HEX, RGB, HSL) with right-click to remove.
 
-## How to use
+---
 
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+## 🚀 Installation
 
-## Manually installing the plugin
+### Via Obsidian Community Plugins (Recommended)
+1. Open Obsidian **Settings** → **Community plugins**.
+2. Make sure **Restricted mode** is turned **off**.
+3. Click **Browse** and search for `BetterNoteBooks`.
+4. Click **Install**, then **Enable**.
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+### Manual Installation
+1. Download `main.js`, `manifest.json`, and `styles.css` from the latest [GitHub Release](https://github.com/).
+2. Create a folder named `betternotebooks` inside your vault under:
+   ```
+   <YourVault>/.obsidian/plugins/betternotebooks/
+   ```
+3. Copy the three files into that folder.
+4. Reload Obsidian and enable **BetterNoteBooks** under **Settings → Community plugins**.
 
-## Improve code quality with eslint
+---
 
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+## 🛠️ Development
 
-## Funding URL
+```bash
+# Install dependencies
+npm install
 
-You can include funding URLs where people who use your plugin can financially support it.
+# Run dev mode with automatic rebuild
+npm run dev
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+# Build for release
+npm run build
 
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
+# Run linting
+npm run lint
 ```
 
-If you have multiple URLs, you can also do:
+---
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
-```
+## 📄 License
 
-## API Documentation
+This project is licensed under the [MIT License](LICENSE).
 
-See https://docs.obsidian.md
