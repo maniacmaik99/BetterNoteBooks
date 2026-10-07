@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-betternotebooks",
 	"version": "1.0.0",
-	"description": "GoodNotes-style handwriting, vector drawing, shapes, and multi-page notebooks with stylus palm rejection for Obsidian.",
+	"description": "Create multi-page digital notebooks in your vault with smooth handwriting, geometric shapes, and palm rejection.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
