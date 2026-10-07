@@ -218,7 +218,11 @@ button.betternotebook-add-color-btn svg {
 	display: block;
 }
 
-/* Width buttons */
+/* Dynamic Size Slots (Stroke / Eraser) */
+.betternotebook-toolbar-group.stroke-widths.is-hidden {
+	display: none !important;
+}
+
 .betternotebook-width-btn {
 	display: inline-flex;
 	align-items: center;
@@ -235,6 +239,7 @@ button.betternotebook-add-color-btn svg {
 	flex-shrink: 0;
 	box-sizing: border-box;
 	transition: background-color 0.15s ease, border-color 0.15s ease;
+	position: relative;
 }
 
 .betternotebook-width-btn:hover {
@@ -249,6 +254,109 @@ button.betternotebook-add-color-btn svg {
 .betternotebook-width-dot {
 	background-color: var(--text-normal);
 	border-radius: 50%;
+	transition: width 0.15s ease, height 0.15s ease, background-color 0.15s ease, border 0.15s ease;
+}
+
+.betternotebook-width-dot.is-eraser {
+	border: 1.5px solid var(--text-muted, #4b5563);
+	background-color: rgba(55, 65, 81, 0.25);
+}
+
+/* Size Adjustment Popover (Card / GoodNotes style) */
+.betternotebook-size-popover {
+	position: fixed;
+	width: 240px;
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.12);
+	border-radius: 12px;
+	padding: 12px;
+	z-index: 1000;
+	user-select: none;
+	animation: lassoPopIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+	box-sizing: border-box;
+}
+
+.betternotebook-size-preview-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	background-color: var(--background-secondary);
+	border-radius: 8px;
+	margin-bottom: 12px;
+}
+
+.betternotebook-size-preview-circle-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+}
+
+.betternotebook-size-preview-circle {
+	border-radius: 50%;
+	background-color: var(--text-normal);
+	transition: width 0.05s ease, height 0.05s ease;
+	max-width: 36px;
+	max-height: 36px;
+}
+
+.betternotebook-size-preview-circle.is-eraser {
+	border: 1.5px solid var(--text-muted, #4b5563);
+	background-color: rgba(55, 65, 81, 0.25);
+}
+
+.betternotebook-size-value-badge {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-normal);
+	font-variant-numeric: tabular-nums;
+}
+
+.betternotebook-size-slider-wrap {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+
+.betternotebook-size-slider-wrap input[type='range'] {
+	flex: 1;
+	accent-color: var(--interactive-accent);
+	cursor: pointer;
+}
+
+.betternotebook-size-presets {
+	display: flex;
+	gap: 5px;
+	margin-top: 6px;
+}
+
+.betternotebook-size-preset-btn {
+	flex: 1;
+	border: 1px solid var(--background-modifier-border);
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 11px;
+	font-weight: 500;
+	padding: 4px 0;
+	border-radius: 6px;
+	cursor: pointer;
+	text-align: center;
+	transition: all 0.15s ease;
+}
+
+.betternotebook-size-preset-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-size-preset-btn.is-active {
+	border-color: var(--interactive-accent);
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent, #ffffff);
 }
 
 /* ----------------------------------------------------
@@ -1193,12 +1301,13 @@ button.betternotebook-add-color-btn svg {
 }
 
 /* ----------------------------------------------------
-   Eraser Cursor & Circular Overlay
+   Eraser Cursor & Circular Overlay (Anthrazit)
 ---------------------------------------------------- */
 .betternotebook-eraser-cursor {
+	display: none;
 	position: absolute;
-	border: 2px solid rgba(239, 68, 68, 0.85);
-	background-color: rgba(239, 68, 68, 0.14);
+	border: 1.5px solid var(--text-muted, #4b5563);
+	background-color: rgba(55, 65, 81, 0.18);
 	border-radius: 50%;
 	pointer-events: none;
 	transform: translate(-50%, -50%);
@@ -1399,5 +1508,521 @@ input.betternotebook-hidden-input,
 	height: 13px;
 	display: block;
 }
+
+/* ----------------------------------------------------
+   Lasso Tool & Selection
+---------------------------------------------------- */
+.betternotebook-lasso-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 12;
+}
+
+.betternotebook-lasso-svg {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	overflow: visible;
+}
+
+@keyframes marchingAnts {
+	0% {
+		stroke-dashoffset: 0;
+	}
+	100% {
+		stroke-dashoffset: 16;
+	}
+}
+
+.betternotebook-lasso-path,
+.betternotebook-lasso-rect {
+	display: none;
+	fill: rgba(var(--interactive-accent-rgb, 60, 130, 246), 0.12);
+	stroke: var(--interactive-accent, #3b82f6);
+	stroke-width: 2px;
+	stroke-dasharray: 5, 5;
+	animation: marchingAnts 0.65s linear infinite;
+}
+
+.betternotebook-lasso-path.is-visible,
+.betternotebook-lasso-rect.is-visible {
+	display: block;
+}
+
+.betternotebook-lasso-box {
+	position: absolute;
+	border: 1.5px dashed var(--interactive-accent, #3b82f6);
+	background-color: rgba(var(--interactive-accent-rgb, 60, 130, 246), 0.08);
+	border-radius: 4px;
+	pointer-events: auto;
+	touch-action: none;
+	cursor: grab;
+	z-index: 14;
+	box-sizing: border-box;
+}
+
+.betternotebook-lasso-box.is-dragging {
+	cursor: grabbing;
+	background-color: rgba(var(--interactive-accent-rgb, 60, 130, 246), 0.14);
+}
+
+.betternotebook-lasso-handle {
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	background: var(--background-primary, #ffffff);
+	border: 2px solid var(--interactive-accent, #3b82f6);
+	border-radius: 50%;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+	z-index: 16;
+	box-sizing: border-box;
+	pointer-events: auto;
+	touch-action: none;
+	transition: transform 0.1s ease;
+}
+
+.betternotebook-lasso-handle:hover {
+	transform: scale(1.3);
+}
+
+.betternotebook-lasso-handle.role-tl,
+.betternotebook-lasso-handle.role-br {
+	cursor: nwse-resize;
+}
+
+.betternotebook-lasso-handle.role-tr,
+.betternotebook-lasso-handle.role-bl {
+	cursor: nesw-resize;
+}
+
+.betternotebook-lasso-floating-bar {
+	position: absolute;
+	transform: translate(-50%, 0);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+	border-radius: 20px;
+	padding: 3px 6px;
+	pointer-events: auto;
+	z-index: 25;
+	white-space: nowrap;
+	animation: shapeBarFadeIn 0.15s ease-out;
+}
+
+.betternotebook-lasso-action-btn {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	border-radius: 12px;
+	padding: 4px 8px;
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--text-normal);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.betternotebook-lasso-action-btn svg {
+	width: 13px;
+	height: 13px;
+	display: block;
+}
+
+.betternotebook-lasso-action-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-lasso-action-btn.is-danger {
+	color: var(--text-error, #e53935);
+}
+
+.betternotebook-lasso-action-btn.is-danger:hover {
+	background-color: rgba(229, 57, 53, 0.12);
+}
+
+.betternotebook-lasso-color-popup {
+	position: absolute;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 16px;
+	padding: 5px 8px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+	z-index: 30;
+	pointer-events: auto;
+	animation: shapeBarFadeIn 0.12s ease-out;
+}
+
+.betternotebook-lasso-color-swatch {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 2px solid var(--background-primary);
+	box-shadow: 0 0 0 1px var(--background-modifier-border);
+	cursor: pointer;
+	padding: 0;
+	transition: transform 0.15s ease;
+}
+
+.betternotebook-lasso-color-swatch:hover {
+	transform: scale(1.25);
+	box-shadow: 0 0 0 2px var(--interactive-accent);
+}
+
+/* ----------------------------------------------------
+   Lasso & Tool Popovers (GoodNotes Style)
+---------------------------------------------------- */
+.betternotebook-lasso-popover,
+.betternotebook-tool-popover {
+	position: fixed;
+	width: 290px;
+	max-width: calc(100vw - 24px);
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.12);
+	border-radius: 12px;
+	padding: 12px;
+	z-index: 1000;
+	user-select: none;
+	animation: lassoPopIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+	box-sizing: border-box;
+}
+
+.betternotebook-popover-hint {
+	font-size: 11px;
+	color: var(--text-muted);
+	margin-top: 6px;
+	line-height: 1.35;
+	padding: 0 2px;
+}
+
+.betternotebook-tool-action-btn {
+	width: 100%;
+	padding: 7px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	background: transparent;
+	color: var(--text-normal);
+	font-weight: 500;
+	font-size: 12px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	transition: all 0.15s ease;
+}
+
+.betternotebook-tool-action-btn:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.betternotebook-tool-action-btn.is-danger {
+	color: var(--text-error, #e53935);
+	border-color: rgba(229, 57, 53, 0.35);
+	background: rgba(229, 57, 53, 0.06);
+}
+
+.betternotebook-tool-action-btn.is-danger:hover {
+	background: rgba(229, 57, 53, 0.15);
+	border-color: var(--text-error, #e53935);
+}
+
+@keyframes lassoPopIn {
+	from {
+		opacity: 0;
+		transform: scale(0.96) translateY(-4px);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+
+.betternotebook-lasso-popover-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+
+.betternotebook-lasso-popover-title-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.betternotebook-lasso-popover-header-icon {
+	color: var(--interactive-accent);
+	display: flex;
+	align-items: center;
+}
+
+.betternotebook-lasso-popover-header-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.betternotebook-lasso-popover-title {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.betternotebook-lasso-popover-close {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	padding: 3px;
+	border-radius: 6px;
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.betternotebook-lasso-popover-close:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-lasso-popover-close svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* Mode Switcher Segmented Control */
+.betternotebook-lasso-segmented {
+	display: flex;
+	width: 100%;
+	box-sizing: border-box;
+	background-color: var(--background-secondary);
+	border-radius: 8px;
+	padding: 3px;
+	gap: 3px;
+	margin-bottom: 6px;
+	overflow: hidden;
+}
+
+.betternotebook-lasso-seg-btn {
+	flex: 1 1 0;
+	min-width: 0;
+	box-sizing: border-box;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 11.5px;
+	font-weight: 500;
+	padding: 6px 4px;
+	border-radius: 6px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	transition: all 0.15s ease;
+}
+
+.betternotebook-lasso-seg-btn .seg-icon {
+	display: flex;
+	align-items: center;
+}
+
+.betternotebook-lasso-seg-btn .seg-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.betternotebook-lasso-seg-btn:hover {
+	color: var(--text-normal);
+}
+
+.betternotebook-lasso-seg-btn.is-active {
+	background-color: var(--background-primary);
+	color: var(--interactive-accent);
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+	font-weight: 600;
+}
+
+.betternotebook-lasso-popover-divider {
+	height: 1px;
+	background-color: var(--background-modifier-border);
+	margin: 9px 0;
+}
+
+/* Filter Header */
+.betternotebook-lasso-filter-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 6px;
+	padding: 0 2px;
+}
+
+.betternotebook-lasso-section-label {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--text-muted);
+}
+
+.betternotebook-lasso-all-btn {
+	border: 1px solid var(--background-modifier-border);
+	background: transparent;
+	font-size: 10px;
+	font-weight: 500;
+	padding: 1px 6px;
+	border-radius: 10px;
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: all 0.12s ease;
+}
+
+.betternotebook-lasso-all-btn:hover {
+	color: var(--text-normal);
+	border-color: var(--interactive-accent);
+}
+
+.betternotebook-lasso-all-btn.is-active {
+	background-color: rgba(var(--interactive-accent-rgb, 60, 130, 246), 0.15);
+	color: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+	font-weight: 600;
+}
+
+/* Filter Rows */
+.betternotebook-lasso-filter-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.betternotebook-lasso-filter-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 8px;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: background-color 0.12s ease;
+}
+
+.betternotebook-lasso-filter-row:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.betternotebook-lasso-filter-row-left {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.betternotebook-lasso-filter-icon {
+	color: var(--text-muted);
+	display: flex;
+	align-items: center;
+}
+
+.betternotebook-lasso-filter-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.betternotebook-lasso-filter-label {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+/* iOS Style Switch */
+.betternotebook-switch {
+	width: 34px;
+	height: 19px;
+	background-color: var(--background-modifier-border);
+	border-radius: 12px;
+	position: relative;
+	transition: background-color 0.2s ease;
+	flex-shrink: 0;
+	cursor: pointer;
+}
+
+.betternotebook-switch.is-checked {
+	background-color: var(--interactive-accent);
+}
+
+.betternotebook-switch-thumb {
+	width: 15px;
+	height: 15px;
+	background-color: #ffffff;
+	border-radius: 50%;
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+	transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.betternotebook-switch.is-checked .betternotebook-switch-thumb {
+	transform: translateX(15px);
+}
+
+/* Footer & Paste */
+.betternotebook-lasso-popover-footer {
+	margin-top: 2px;
+}
+
+.betternotebook-lasso-paste-pop-btn {
+	width: 100%;
+	padding: 7px 10px;
+	border: 1px solid var(--interactive-accent);
+	border-radius: 8px;
+	background: rgba(var(--interactive-accent-rgb, 60, 130, 246), 0.1);
+	color: var(--interactive-accent);
+	font-weight: 500;
+	font-size: 12px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	transition: all 0.15s ease;
+}
+
+.betternotebook-lasso-paste-pop-btn:hover {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent, #ffffff);
+}
+
+.betternotebook-lasso-paste-pop-btn .paste-icon {
+	display: flex;
+	align-items: center;
+}
+
+.betternotebook-lasso-paste-pop-btn .paste-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+
 
 

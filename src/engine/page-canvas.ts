@@ -23,6 +23,7 @@ import {
 import { recognizeShape } from '../utils/shape-recognizer';
 import { ShapeOptionsModal } from '../ui/shape-options-modal';
 import { ImageCropModal } from '../ui/image-crop-modal';
+import { LassoManager } from './lasso-manager';
 
 export interface PageCanvasEvents {
 	onStrokeAdded?: (pageId: string, stroke: Stroke) => void;
@@ -31,6 +32,7 @@ export interface PageCanvasEvents {
 	onImageDeleted?: (pageId: string, image: PageImage) => void;
 	onPageChanged?: (pageId: string) => void;
 	isGestureActive?: () => boolean;
+	getCustomColors?: () => string[];
 }
 
 export class PageCanvas {
@@ -43,6 +45,7 @@ export class PageCanvas {
 	private imageOverlayEl: HTMLElement;
 	private shapeOverlayEl: HTMLElement;
 	private shapeLockOverlayEl: HTMLElement;
+	private lassoManager: LassoManager;
 	private events: PageCanvasEvents;
 	private app?: App;
 
@@ -78,6 +81,12 @@ export class PageCanvas {
 			role: ShapeHandle['role'];
 		}[];
 	} | null = null;
+
+	// Hold to Paste in Lasso mode
+	private lassoHoldTimer: number | null = null;
+	private lassoHoldStartPoint: { x: number; y: number } | null = null;
+	private lassoHoldClientPoint: { x: number; y: number } | null = null;
+	private isLassoHoldTriggered = false;
 
 	private currentStyle: StrokeStyle;
 	private pressureSensitivity = 2.0;
@@ -172,6 +181,14 @@ export class PageCanvas {
 		this.renderImages();
 		this.redrawAll();
 		this.renderShapeLockBadges();
+
+		this.lassoManager = new LassoManager(this.pageEl, this.page, {
+			redrawAll: () => this.redrawAll(),
+			renderImages: () => this.renderImages(),
+			onPageChanged: () => this.events.onPageChanged?.(this.page.id),
+			getColors: () => this.events.getCustomColors?.() ?? [],
+			getCanvasPoint: (e) => this.getCanvasPoint(e),
+		});
 	}
 
 	public setVisibility(visible: boolean): void {
@@ -195,6 +212,9 @@ export class PageCanvas {
 		}
 		if (this.currentStyle.tool !== 'eraser' && this.eraserCursorEl) {
 			this.eraserCursorEl.removeClass('is-active');
+		}
+		if (style.tool && style.tool !== 'lasso') {
+			this.lassoManager.clearSelection();
 		}
 	}
 
@@ -294,7 +314,9 @@ export class PageCanvas {
 
 	public destroy(): void {
 		this.clearHoldTimer();
+		this.clearLassoHoldTimer();
 		this.safeReleasePointerCapture();
+		this.lassoManager.destroy();
 		this.canvas.removeEventListener('pointerdown', this.onPointerDown);
 		this.canvas.removeEventListener('pointermove', this.onPointerMove);
 		this.canvas.removeEventListener('pointerup', this.onPointerUp);
@@ -421,6 +443,89 @@ export class PageCanvas {
 					.setIcon('trash-2')
 					.onClick(() => {
 						this.deleteShapeStroke(hitShape);
+					}),
+			);
+			menu.showAtMouseEvent(e);
+			return;
+		}
+
+		// Check if right-clicking active lasso selection
+		if (
+			this.lassoManager.hasActiveSelection() &&
+			this.lassoManager.isPointInsideSelection(x, y)
+		) {
+			e.preventDefault();
+			e.stopPropagation();
+			const menu = new Menu();
+			menu.addItem((item) =>
+				item
+					.setTitle('In Zwischenablage kopieren')
+					.setIcon('clipboard')
+					.onClick(() => {
+						this.lassoManager.copySelectionToClipboard();
+					}),
+			);
+			menu.addItem((item) =>
+				item
+					.setTitle('Auswahl duplizieren')
+					.setIcon('copy')
+					.onClick(() => {
+						this.lassoManager.duplicateSelection();
+					}),
+			);
+			if (
+				LassoManager.clipboard &&
+				(LassoManager.clipboard.strokes.length > 0 ||
+					LassoManager.clipboard.images.length > 0)
+			) {
+				const count =
+					LassoManager.clipboard.strokes.length +
+					LassoManager.clipboard.images.length;
+				menu.addItem((item) =>
+					item
+						.setTitle(
+							`Einfügen (${count} ${count === 1 ? 'Element' : 'Elemente'})`,
+						)
+						.setIcon('clipboard-paste')
+						.onClick(() => {
+							this.lassoManager.pasteClipboard({ x, y });
+							this.events.onPageChanged?.(this.page.id);
+						}),
+				);
+			}
+			menu.addItem((item) =>
+				item
+					.setTitle('Auswahl löschen')
+					.setIcon('trash-2')
+					.onClick(() => {
+						this.lassoManager.deleteSelection();
+					}),
+			);
+			menu.showAtMouseEvent(e);
+			return;
+		}
+
+		// Right click on canvas when clipboard has elements: Paste option
+		if (
+			LassoManager.clipboard &&
+			(LassoManager.clipboard.strokes.length > 0 ||
+				LassoManager.clipboard.images.length > 0)
+		) {
+			e.preventDefault();
+			e.stopPropagation();
+			const count =
+				LassoManager.clipboard.strokes.length +
+				LassoManager.clipboard.images.length;
+			const menu = new Menu();
+			menu.addItem((item) =>
+				item
+					.setTitle(
+						`Einfügen (${count} ${count === 1 ? 'Element' : 'Elemente'})`,
+					)
+					.setIcon('clipboard-paste')
+					.onClick(() => {
+						this.lassoManager.pasteClipboard({ x, y });
+						this.events.onPageChanged?.(this.page.id);
 					}),
 			);
 			menu.showAtMouseEvent(e);
@@ -599,6 +704,8 @@ export class PageCanvas {
 	}
 
 	public cancelCurrentStroke(): void {
+		this.clearLassoHoldTimer();
+		this.isLassoHoldTriggered = false;
 		if (this.isDrawing) {
 			this.clearHoldTimer();
 			this.safeReleasePointerCapture();
@@ -618,6 +725,55 @@ export class PageCanvas {
 		}
 	}
 
+	private clearLassoHoldTimer(): void {
+		if (this.lassoHoldTimer !== null) {
+			window.clearTimeout(this.lassoHoldTimer);
+			this.lassoHoldTimer = null;
+		}
+		this.lassoHoldStartPoint = null;
+		this.lassoHoldClientPoint = null;
+	}
+
+	private triggerLassoHoldPaste(
+		canvasX: number,
+		canvasY: number,
+		clientX: number,
+		clientY: number,
+	): void {
+		this.clearLassoHoldTimer();
+		this.isLassoHoldTriggered = true;
+
+		// Cancel in-progress lasso drawing loop
+		this.lassoManager.cancelDrawing();
+		this.safeReleasePointerCapture();
+		this.activePointerId = null;
+
+		if (
+			!LassoManager.clipboard ||
+			(LassoManager.clipboard.strokes.length === 0 &&
+				LassoManager.clipboard.images.length === 0)
+		) {
+			return;
+		}
+
+		const count =
+			LassoManager.clipboard.strokes.length +
+			LassoManager.clipboard.images.length;
+		const menu = new Menu();
+		menu.addItem((item) =>
+			item
+				.setTitle(
+					`Einfügen (${count} ${count === 1 ? 'Element' : 'Elemente'})`,
+				)
+				.setIcon('clipboard-paste')
+				.onClick(() => {
+					this.lassoManager.pasteClipboard({ x: canvasX, y: canvasY });
+					this.events.onPageChanged?.(this.page.id);
+				}),
+		);
+		menu.showAtPosition({ x: clientX, y: clientY });
+	}
+
 	private onPointerDown = (e: PointerEvent): void => {
 		if (e.button !== 0 && e.pointerType === 'mouse') return;
 		if (this.events.isGestureActive?.()) return;
@@ -627,6 +783,72 @@ export class PageCanvas {
 
 		const { x, y } = this.getCanvasPoint(e);
 		this.lastMovePoint = { x, y };
+
+		// 0. Active Lasso Selection interaction
+		if (this.lassoManager.hasActiveSelection()) {
+			const cornerRole = this.lassoManager.hitTestCornerHandle(x, y, 16);
+			if (cornerRole) {
+				this.lassoManager.startScaling(cornerRole);
+				this.activePointerId = e.pointerId;
+				try {
+					this.canvas.setPointerCapture(e.pointerId);
+				} catch {
+					// Ignore pointer capture error
+				}
+				return;
+			}
+
+			if (this.lassoManager.isPointInsideSelection(x, y)) {
+				this.lassoManager.startDragging(x, y);
+				this.activePointerId = e.pointerId;
+				try {
+					this.canvas.setPointerCapture(e.pointerId);
+				} catch {
+					// Ignore pointer capture error
+				}
+				return;
+			}
+
+			// Tapped outside active lasso selection: dismiss selection
+			this.lassoManager.clearSelection();
+			if (e.pointerType === 'touch' && this.currentStyle.tool !== 'lasso') {
+				return;
+			}
+		}
+
+		// 0b. Lasso Tool Drawing
+		if (this.currentStyle.tool === 'lasso') {
+			if (this.stylusOnlyMode && e.pointerType === 'touch') {
+				return;
+			}
+			this.deselectAllImages();
+			if (this.activeShapeStroke) {
+				this.clearActiveShape();
+			}
+			try {
+				this.canvas.setPointerCapture(e.pointerId);
+			} catch {
+				// Ignore pointer capture error
+			}
+			this.activePointerId = e.pointerId;
+			this.lassoManager.startDrawing(x, y);
+
+			// Hold-to-paste detection (finger or stylus held longer in lasso mode)
+			if (
+				LassoManager.clipboard &&
+				(LassoManager.clipboard.strokes.length > 0 ||
+					LassoManager.clipboard.images.length > 0)
+			) {
+				this.clearLassoHoldTimer();
+				this.lassoHoldStartPoint = { x, y };
+				this.lassoHoldClientPoint = { x: e.clientX, y: e.clientY };
+				this.isLassoHoldTriggered = false;
+				this.lassoHoldTimer = window.setTimeout(() => {
+					this.triggerLassoHoldPaste(x, y, e.clientX, e.clientY);
+				}, 420);
+			}
+			return;
+		}
 
 		// 1. If a shape is currently selected, check if tapping outside to dismiss it
 		if (this.activeShapeStroke) {
@@ -862,6 +1084,35 @@ export class PageCanvas {
 	private onPointerMove = (e: PointerEvent): void => {
 		const { x, y } = this.getCanvasPoint(e);
 
+		// Cancel lasso hold timer if pointer moved more than 8px
+		if (this.lassoHoldTimer !== null && this.lassoHoldStartPoint) {
+			const dist = Math.hypot(
+				x - this.lassoHoldStartPoint.x,
+				y - this.lassoHoldStartPoint.y,
+			);
+			if (dist > 8) {
+				this.clearLassoHoldTimer();
+			}
+		}
+
+		if (this.isLassoHoldTriggered) {
+			return;
+		}
+
+		// Handle Lasso interaction move
+		if (this.lassoManager.isScalingSelection) {
+			this.lassoManager.updateScaling(x, y);
+			return;
+		}
+		if (this.lassoManager.isDraggingSelection) {
+			this.lassoManager.updateDragging(x, y);
+			return;
+		}
+		if (this.lassoManager.isLassoDrawing) {
+			this.lassoManager.updateDrawing(x, y, this.currentStyle.lassoMode || 'freehand');
+			return;
+		}
+
 		// If hovering with eraser, update cursor circle position
 		if (this.currentStyle.tool === 'eraser') {
 			this.updateEraserCursor(x, y, true);
@@ -1047,32 +1298,130 @@ export class PageCanvas {
 
 	private onPointerUp = (e: PointerEvent): void => {
 		this.safeReleasePointerCapture(e.pointerId);
+		this.clearLassoHoldTimer();
+		if (this.isLassoHoldTriggered) {
+			this.isLassoHoldTriggered = false;
+			this.activePointerId = null;
+			return;
+		}
+
+		if (this.lassoManager.isScalingSelection) {
+			this.lassoManager.finishScaling();
+			this.activePointerId = null;
+			return;
+		}
+		if (this.lassoManager.isDraggingSelection) {
+			this.lassoManager.finishDragging();
+			this.activePointerId = null;
+			return;
+		}
+		if (this.lassoManager.isLassoDrawing) {
+			this.lassoManager.finishDrawing(
+				this.currentStyle.lassoMode || 'freehand',
+				this.currentStyle.lassoFilter,
+			);
+			this.activePointerId = null;
+			return;
+		}
+		if (e.pointerType !== 'mouse') {
+			this.updateEraserCursor(0, 0, false);
+		}
 		if (!this.isDrawing) return;
 		if (this.activePointerId !== null && this.activePointerId !== e.pointerId) return;
 		this.finishPointer(e);
 	};
 
 	private onPointerCancel = (e: PointerEvent): void => {
+		this.updateEraserCursor(0, 0, false);
 		this.safeReleasePointerCapture(e.pointerId);
+		this.clearLassoHoldTimer();
+		if (this.isLassoHoldTriggered) {
+			this.isLassoHoldTriggered = false;
+			this.activePointerId = null;
+			return;
+		}
+
+		if (this.lassoManager.isScalingSelection) {
+			this.lassoManager.finishScaling();
+			this.activePointerId = null;
+			return;
+		}
+		if (this.lassoManager.isDraggingSelection) {
+			this.lassoManager.finishDragging();
+			this.activePointerId = null;
+			return;
+		}
+		if (this.lassoManager.isLassoDrawing) {
+			this.lassoManager.finishDrawing(
+				this.currentStyle.lassoMode || 'freehand',
+				this.currentStyle.lassoFilter,
+			);
+			this.activePointerId = null;
+			return;
+		}
 		if (!this.isDrawing) return;
 		if (this.activePointerId !== null && this.activePointerId !== e.pointerId) return;
 		this.finishPointer(e);
 	};
 
 	private onLostPointerCapture = (e: PointerEvent): void => {
+		this.updateEraserCursor(0, 0, false);
 		this.safeReleasePointerCapture(e.pointerId);
+		this.clearLassoHoldTimer();
+		if (this.isLassoHoldTriggered) {
+			this.isLassoHoldTriggered = false;
+			this.activePointerId = null;
+			return;
+		}
+
+		if (this.lassoManager.isScalingSelection) {
+			this.lassoManager.finishScaling();
+			this.activePointerId = null;
+			return;
+		}
+		if (this.lassoManager.isDraggingSelection) {
+			this.lassoManager.finishDragging();
+			this.activePointerId = null;
+			return;
+		}
+		if (this.lassoManager.isLassoDrawing) {
+			this.lassoManager.finishDrawing(
+				this.currentStyle.lassoMode || 'freehand',
+				this.currentStyle.lassoFilter,
+			);
+			this.activePointerId = null;
+			return;
+		}
 		if (this.isDrawing) {
 			this.finishPointer(e);
 		}
 	};
 
 	private onWindowBlur = (): void => {
+		if (this.lassoManager.isLassoDrawing) {
+			this.lassoManager.finishDrawing(
+				this.currentStyle.lassoMode || 'freehand',
+				this.currentStyle.lassoFilter,
+			);
+		}
 		if (this.isDrawing) {
 			this.cancelCurrentStroke();
 		} else {
 			this.safeReleasePointerCapture();
 		}
 	};
+
+	public getLassoManager(): LassoManager {
+		return this.lassoManager;
+	}
+
+	public clearLassoSelection(): void {
+		this.lassoManager.clearSelection();
+	}
+
+	public pasteLassoClipboard(point?: { x: number; y: number }): boolean {
+		return this.lassoManager.pasteClipboard(point);
+	}
 
 	private finishPointer(e: PointerEvent): void {
 		this.clearHoldTimer();

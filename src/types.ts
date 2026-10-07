@@ -1,4 +1,22 @@
-export type DrawingTool = 'pen' | 'highlighter' | 'eraser' | 'shape';
+export type DrawingTool = 'pen' | 'highlighter' | 'eraser' | 'shape' | 'lasso';
+
+export type LassoSelectionMode = 'freehand' | 'rectangle';
+
+export interface LassoFilterSettings {
+	all: boolean;
+	handwriting: boolean;
+	highlighter: boolean;
+	shapes: boolean;
+	images: boolean;
+}
+
+export const DEFAULT_LASSO_FILTER: LassoFilterSettings = {
+	all: true,
+	handwriting: true,
+	highlighter: true,
+	shapes: true,
+	images: true,
+};
 
 export type PageFormat = 'a4' | 'a3' | 'a5' | 'letter';
 export type PageOrientation = 'portrait' | 'landscape';
@@ -33,6 +51,8 @@ export interface StrokeStyle {
 	hasFill?: boolean;
 	fillColor?: string;
 	fillOpacity?: number;
+	lassoMode?: LassoSelectionMode;
+	lassoFilter?: LassoFilterSettings;
 }
 
 export type ShapeType = 'line' | 'arc' | 'circle' | 'rectangle' | 'triangle' | 'polygon';
@@ -138,6 +158,10 @@ export interface BetterNotebookSettings {
 	zoomAdaptiveStrokeWidth: boolean;
 	notebooksFolder: string;
 	lastActiveNotebookPath: string;
+	penWidthSlots: [number, number];
+	penActiveSlotIndex: number;
+	eraserRadiusSlots: [number, number];
+	eraserActiveSlotIndex: number;
 }
 
 export const DEFAULT_PALETTE_COLORS = [
@@ -173,4 +197,8 @@ export const DEFAULT_SETTINGS: BetterNotebookSettings = {
 	zoomAdaptiveStrokeWidth: true,
 	notebooksFolder: 'Notebooks',
 	lastActiveNotebookPath: '',
+	penWidthSlots: [1.8, 4.0],
+	penActiveSlotIndex: 0,
+	eraserRadiusSlots: [12, 28],
+	eraserActiveSlotIndex: 0,
 };
