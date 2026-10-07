@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice } from 'obsidian';
+import { App, Modal, Notice } from 'obsidian';
 
 export const PRESET_COLOR_PALETTES: { name: string; colors: string[] }[] = [
 	{

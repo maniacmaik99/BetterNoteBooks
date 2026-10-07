@@ -1530,10 +1530,11 @@ export class DrawingView extends TextFileView {
 
 	private openImageFileDialog(): void {
 		const doc = this.containerEl.ownerDocument || activeDocument || document;
-		const fileInput = doc.createElement('input');
-		fileInput.type = 'file';
-		fileInput.accept = 'image/*';
-		fileInput.addClass('betternotebook-hidden-input');
+		const fileInput = doc.body.createEl('input', {
+			type: 'file',
+			cls: 'betternotebook-hidden-input',
+			attr: { accept: 'image/*' },
+		});
 
 		fileInput.addEventListener('change', () => {
 			const file = fileInput.files?.[0];
@@ -1548,7 +1549,6 @@ export class DrawingView extends TextFileView {
 			fileInput.remove();
 		});
 
-		doc.body.appendChild(fileInput);
 		fileInput.click();
 	}
 

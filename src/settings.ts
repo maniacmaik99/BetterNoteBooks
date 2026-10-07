@@ -15,7 +15,7 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('betterNotebook Palette Einstellungen')
+			.setName('Allgemein')
 			.setHeading();
 
 		new Setting(containerEl)

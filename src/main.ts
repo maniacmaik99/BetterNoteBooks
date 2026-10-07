@@ -25,7 +25,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'open-drawing-view',
-			name: 'BetterNoteBooks: Zeichenfläche öffnen',
+			name: 'Zeichenfläche öffnen',
 			callback: () => {
 				void this.activateView();
 			},
@@ -33,7 +33,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'create-new-notebook',
-			name: 'BetterNoteBooks: Neues Notizbuch erstellen',
+			name: 'Neues Notizbuch erstellen',
 			callback: () => {
 				void (async () => {
 					const leaf = await this.activateView();
@@ -46,7 +46,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'open-notebook-file',
-			name: 'BetterNoteBooks: Notizbuch aus Vault öffnen',
+			name: 'Notizbuch aus Vault öffnen',
 			callback: () => {
 				void (async () => {
 					const store = new NotebookStore(this.app, this);
@@ -75,7 +75,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'add-new-page',
-			name: 'BetterNoteBooks: Neue Seite hinzufügen',
+			name: 'Neue Seite hinzufügen',
 			callback: () => {
 				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
 				if (activeLeaf) {
@@ -93,7 +93,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'toggle-eraser-mode',
-			name: 'BetterNoteBooks: Radiergummi-Modus umschalten (Strich / Präzision)',
+			name: 'Radiergummi-Modus umschalten (Strich / Präzision)',
 			callback: () => {
 				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
 				if (activeLeaf) {
@@ -104,7 +104,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'toggle-stylus-only-mode',
-			name: 'BetterNoteBooks: Stift-Modus umschalten (Handflächenschutz)',
+			name: 'Stift-Modus umschalten (Handflächenschutz)',
 			callback: () => {
 				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
 				if (activeLeaf) {
@@ -115,7 +115,7 @@ export default class BetterNotebookPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'clear-active-page',
-			name: 'BetterNoteBooks: Aktuelle Seite leeren',
+			name: 'Aktuelle Seite leeren',
 			callback: () => {
 				const activeLeaf = this.app.workspace.getActiveViewOfType(DrawingView);
 				if (activeLeaf) {
