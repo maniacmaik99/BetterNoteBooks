@@ -10,6 +10,10 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	getSettingDefinitions(): unknown[] {
+		return [];
+	}
+
 	public display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
