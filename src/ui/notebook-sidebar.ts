@@ -1,5 +1,5 @@
 import { App, Menu, setIcon } from 'obsidian';
-import { NotebookEngine } from '../engine/notebook-engine';
+import { NotebookEngine, getPageDisplayName } from '../engine/notebook-engine';
 import { NotebookPage } from '../types';
 import { PromptModal } from './prompt-modal';
 import { t } from '../i18n';
@@ -73,6 +73,13 @@ export class NotebookSidebar {
 	public refresh(): void {
 		this.renderActiveFilterBadge();
 		this.renderPageListItems();
+	}
+
+	public refreshAll(): void {
+		this.containerEl.empty();
+		this.renderHeader();
+		this.renderSearchAndFilters();
+		this.renderPageList();
 	}
 
 	private renderHeader(): void {
@@ -154,11 +161,13 @@ export class NotebookSidebar {
 			const badge = this.activeFilterBadgeEl.createDiv({
 				cls: 'betternotebook-active-filter-badge',
 			});
-			badge.createSpan({ text: `Gruppe: ${this.activeGroupFilter}` });
+			badge.createSpan({
+				text: `${t('sidebar_group_prefix')} ${this.activeGroupFilter}`,
+			});
 			const clearBtn = badge.createSpan({
 				cls: 'betternotebook-clear-filter-btn',
 				text: '✕',
-				title: 'Filter aufheben',
+				title: t('sidebar_clear_filter'),
 			});
 			clearBtn.addEventListener('click', (e) => {
 				e.stopPropagation();
@@ -174,7 +183,7 @@ export class NotebookSidebar {
 
 		this.groupSuggestionsEl.createDiv({
 			cls: 'betternotebook-suggestions-header',
-			text: 'Themen & Gruppen auswählen',
+			text: t('sidebar_select_topic'),
 		});
 
 		// All pages option
@@ -182,7 +191,7 @@ export class NotebookSidebar {
 		const allItem = this.groupSuggestionsEl.createDiv({
 			cls: `betternotebook-suggestion-item ${this.activeGroupFilter === 'ALL' ? 'is-active' : ''}`,
 		});
-		allItem.createSpan({ text: 'Alle Seiten anzeigen' });
+		allItem.createSpan({ text: t('sidebar_all_pages') });
 		allItem.createSpan({
 			cls: 'betternotebook-suggestion-count',
 			text: `${allPages.length}`,
@@ -224,15 +233,15 @@ export class NotebookSidebar {
 		const newItem = this.groupSuggestionsEl.createDiv({
 			cls: 'betternotebook-suggestion-item new-group-action',
 		});
-		newItem.createSpan({ text: '+ Neue Gruppe anlegen...' });
+		newItem.createSpan({ text: `+ ${t('sidebar_add_group_title')}...` });
 		newItem.addEventListener('click', (e) => {
 			e.stopPropagation();
 			this.groupSuggestionsEl.removeClass('is-open');
 			new PromptModal(
 				this.app,
-				'Neue Gruppe anlegen',
+				t('sidebar_add_group_title'),
 				'',
-				'z.B. Mathematik, Vorlesung...',
+				t('sidebar_group_placeholder'),
 				(newGroup) => {
 					this.engine.addGroup(newGroup);
 					this.activeGroupFilter = newGroup;
@@ -263,21 +272,27 @@ export class NotebookSidebar {
 		// Filter by search query if typed
 		if (this.searchQuery) {
 			pages = pages.filter((p) => {
-				const titleMatch = p.title.toLowerCase().includes(this.searchQuery);
+				const titleMatch = (p.title || '').toLowerCase().includes(this.searchQuery);
+				const displayTitleMatch = getPageDisplayName(p)
+					.toLowerCase()
+					.includes(this.searchQuery);
 				const groupMatch = p.group
 					? p.group.toLowerCase().includes(this.searchQuery)
 					: false;
-				const pageNumMatch = `seite ${p.pageNumber}`.includes(
-					this.searchQuery,
-				);
-				return titleMatch || groupMatch || pageNumMatch;
+				const pageNumMatch =
+					`${t('sidebar_page').toLowerCase()} ${p.pageNumber}`.includes(
+						this.searchQuery,
+					) ||
+					`seite ${p.pageNumber}`.includes(this.searchQuery) ||
+					`page ${p.pageNumber}`.includes(this.searchQuery);
+				return titleMatch || displayTitleMatch || groupMatch || pageNumMatch;
 			});
 		}
 
 		if (pages.length === 0) {
 			this.listContainerEl.createDiv({
 				cls: 'betternotebook-empty-state',
-				text: 'Keine passenden Seiten gefunden.',
+				text: t('sidebar_empty_state'),
 			});
 			return;
 		}
@@ -297,8 +312,9 @@ export class NotebookSidebar {
 		const info = card.createDiv({ cls: 'betternotebook-page-card-info' });
 
 		const titleRow = info.createDiv({ cls: 'betternotebook-page-card-title' });
+		const displayTitle = getPageDisplayName(page);
 		titleRow.createSpan({
-			text: `${page.pageNumber}. ${page.title || `Seite ${page.pageNumber}`}`,
+			text: `${page.pageNumber}. ${displayTitle}`,
 		});
 
 		const badgeRow = info.createDiv({ cls: 'betternotebook-page-card-badges' });
@@ -328,14 +344,14 @@ export class NotebookSidebar {
 
 			menu.addItem((item) =>
 				item
-					.setTitle('+ Neue Gruppe anlegen...')
+					.setTitle(`+ ${t('sidebar_add_group_title')}...`)
 					.setIcon('plus')
 					.onClick(() => {
 						new PromptModal(
 							this.app,
-							'Neue Gruppe anlegen',
+							t('sidebar_add_group_title'),
 							'',
-							'z.B. Mathematik, Vorlesung...',
+							t('sidebar_group_placeholder'),
 							(newGroup) => {
 								this.engine.addGroup(newGroup);
 								this.callbacks.onGroupChanged(page.id, newGroup);
@@ -348,7 +364,7 @@ export class NotebookSidebar {
 			if (page.group) {
 				menu.addItem((item) =>
 					item
-						.setTitle('Gruppe entfernen')
+						.setTitle(t('sidebar_remove_group'))
 						.setIcon('trash')
 						.onClick(() => {
 							this.callbacks.onGroupChanged(page.id, '');
@@ -365,16 +381,16 @@ export class NotebookSidebar {
 				cls: 'betternotebook-badge group',
 				text: page.group,
 			});
-			groupBadge.title = 'Klicken zum Ändern oder Zuweisen einer Gruppe';
+			groupBadge.title = t('sidebar_assign_topic');
 			groupBadge.addEventListener('click', (e) => {
 				openGroupMenu(e);
 			});
 		} else {
 			const addGroupBadge = badgeRow.createSpan({
 				cls: 'betternotebook-badge add-group',
-				text: '+ Gruppe',
+				text: `+ ${t('sidebar_group_prefix').replace(':', '')}`,
 			});
-			addGroupBadge.title = 'Thema / Gruppe zuweisen';
+			addGroupBadge.title = t('sidebar_assign_topic');
 			addGroupBadge.addEventListener('click', (e) => {
 				openGroupMenu(e);
 			});
@@ -415,7 +431,7 @@ export class NotebookSidebar {
 			const menu = new Menu();
 			menu.addItem((item) =>
 				item
-					.setTitle(`Seite ${page.pageNumber} wirklich löschen`)
+					.setTitle(`${t('sidebar_delete_page')}: ${t('sidebar_page')} ${page.pageNumber}`)
 					.setIcon('trash-2')
 					.onClick(() => {
 						this.callbacks.onDeletePage(page.id);

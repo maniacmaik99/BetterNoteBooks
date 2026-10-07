@@ -7,6 +7,22 @@ import {
 	PageOrientation,
 	PageBackground,
 } from '../types';
+import { t } from '../i18n';
+
+export function getPageDisplayName(page: NotebookPage): string {
+	if (!page.title) {
+		return `${t('sidebar_page')} ${page.pageNumber}`;
+	}
+	const trimmed = page.title.trim();
+	if (
+		/^(seite|page|صفحة|پەڕە|صفحه|पृष्ठ|صفحہ|página|страница|页面)\s*\d+$/i.test(
+			trimmed,
+		)
+	) {
+		return `${t('sidebar_page')} ${page.pageNumber}`;
+	}
+	return page.title;
+}
 
 export type NotebookAction =
 	| { type: 'add_stroke'; pageId: string; stroke: Stroke }
@@ -98,10 +114,11 @@ export class NotebookEngine {
 		if (!this.document.groups || !Array.isArray(this.document.groups) || this.document.groups.length === 0) {
 			this.document.groups = ['Standard'];
 		}
+
 		const newPage: NotebookPage = {
 			id: `page_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 			pageNumber,
-			title: `Seite ${pageNumber}`,
+			title: '',
 			group: group || (this.document.groups[0] ?? 'Standard'),
 			format: format || 'a4',
 			orientation: orientation || 'portrait',
@@ -362,7 +379,7 @@ export class NotebookEngine {
 		const firstPage: NotebookPage = {
 			id: `page_${now}_init`,
 			pageNumber: 1,
-			title: 'Seite 1',
+			title: '',
 			group: 'Standard',
 			format: defaultFormat,
 			orientation: defaultOrientation,

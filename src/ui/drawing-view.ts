@@ -353,13 +353,24 @@ export class DrawingView extends TextFileView {
 		);
 	}
 
+	public onLanguageChanged(): void {
+		if (this.rootContainerEl) {
+			this.rootContainerEl.setAttribute('dir', isRtl() ? 'rtl' : 'ltr');
+		}
+		this.renderToolbar();
+		this.sidebar?.refreshAll();
+		this.pageCanvases.forEach((pc) => pc.updateHeader());
+		this.updateNotebookTitleUI();
+		this.updatePageIndicator();
+	}
+
 	private renderToolbar(): void {
 		this.toolbarEl.empty();
 
 		// Sidebar Toggle
 		const sidebarToggleBtn = this.toolbarEl.createEl('button', {
 			cls: `betternotebook-tool-btn ${this.sidebarVisible ? 'is-active' : ''}`,
-			title: 'Seitenübersicht ein-/ausblenden',
+			title: t('toolbar_toggle_sidebar'),
 		});
 		setIcon(sidebarToggleBtn, 'panel-left');
 		sidebarToggleBtn.addEventListener('click', () => {
@@ -655,37 +666,37 @@ export class DrawingView extends TextFileView {
 			// 2. Insert one-off page with specific template
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('sidebar_new_page')} (${t('format_a4')} • ${t('background_ruled')})`)
+					.setTitle(`A4 • ${t('background_ruled')}`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a4', 'ruled')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('sidebar_new_page')} (${t('format_a4')} • ${t('background_grid')})`)
+					.setTitle(`A4 • ${t('background_grid')}`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a4', 'grid')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('sidebar_new_page')} (${t('format_a4')} • ${t('background_dotted')})`)
+					.setTitle(`A4 • ${t('background_dotted')}`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a4', 'dotted')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('sidebar_new_page')} (${t('format_a4')} • ${t('background_blank')})`)
+					.setTitle(`A4 • ${t('background_blank')}`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a4', 'blank')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('sidebar_new_page')} (${t('format_a5')} • ${t('background_ruled')})`)
+					.setTitle(`A5 • ${t('background_ruled')}`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a5', 'ruled')),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('sidebar_new_page')} (${t('format_a3')} • ${t('background_grid')})`)
+					.setTitle(`A3 • ${t('background_grid')}`)
 					.setIcon('file-text')
 					.onClick(() => this.addNewPage('a3', 'grid')),
 			);
@@ -703,34 +714,34 @@ export class DrawingView extends TextFileView {
 
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('settings_default_format')}: DIN A4 ${t('background_ruled')}`)
+					.setTitle(`★ ${t('settings_default_format')}: A4 • ${t('background_ruled')}`)
 					.setIcon(curFormat === 'A4' && curBg === 'ruled' ? 'check' : 'settings')
 					.onClick(() => {
-						void setAsDefault('a4', 'ruled', `DIN A4 ${t('background_ruled')}`);
+						void setAsDefault('a4', 'ruled', `A4 ${t('background_ruled')}`);
 					}),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('settings_default_format')}: DIN A4 ${t('background_grid')}`)
+					.setTitle(`★ ${t('settings_default_format')}: A4 • ${t('background_grid')}`)
 					.setIcon(curFormat === 'A4' && curBg === 'grid' ? 'check' : 'settings')
 					.onClick(() => {
-						void setAsDefault('a4', 'grid', `DIN A4 ${t('background_grid')}`);
+						void setAsDefault('a4', 'grid', `A4 ${t('background_grid')}`);
 					}),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('settings_default_format')}: DIN A4 ${t('background_dotted')}`)
+					.setTitle(`★ ${t('settings_default_format')}: A4 • ${t('background_dotted')}`)
 					.setIcon(curFormat === 'A4' && curBg === 'dotted' ? 'check' : 'settings')
 					.onClick(() => {
-						void setAsDefault('a4', 'dotted', `DIN A4 ${t('background_dotted')}`);
+						void setAsDefault('a4', 'dotted', `A4 ${t('background_dotted')}`);
 					}),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('settings_default_format')}: DIN A4 ${t('background_blank')}`)
+					.setTitle(`★ ${t('settings_default_format')}: A4 • ${t('background_blank')}`)
 					.setIcon(curFormat === 'A4' && curBg === 'blank' ? 'check' : 'settings')
 					.onClick(() => {
-						void setAsDefault('a4', 'blank', `DIN A4 ${t('background_blank')}`);
+						void setAsDefault('a4', 'blank', `A4 ${t('background_blank')}`);
 					}),
 			);
 
@@ -1768,7 +1779,7 @@ export class DrawingView extends TextFileView {
 		if (pc) {
 			pc.clearStrokes();
 			this.scheduleSave();
-			new Notice('Seite geleert');
+			new Notice(t('command_clear_current_page'));
 		}
 	}
 
@@ -1953,7 +1964,7 @@ export class DrawingView extends TextFileView {
 	private renderNotebookSelector(): void {
 		const notebookBtn = this.toolbarEl.createEl('button', {
 			cls: 'betternotebook-notebook-selector-btn',
-			title: 'Notizbuch wechseln oder neues Notizbuch erstellen',
+			title: t('menu_manage_notebooks'),
 		});
 		const docTitle = this.file?.basename || this.engine.getDocument().title || 'Notizbuch';
 		const bookIcon = notebookBtn.createSpan({ cls: 'betternotebook-notebook-icon' });
@@ -1988,7 +1999,7 @@ export class DrawingView extends TextFileView {
 		// Active notebook label
 		menu.addItem((item) =>
 			item
-				.setTitle(`Aktuell: ${currentTitle}`)
+				.setTitle(`${t('menu_current_notebook')} ${currentTitle}`)
 				.setIcon('book-open')
 				.setDisabled(true),
 		);
@@ -2028,7 +2039,7 @@ export class DrawingView extends TextFileView {
 			// Rename current notebook
 			menu.addItem((item) =>
 				item
-					.setTitle(`${t('sidebar_rename_page')}...`)
+					.setTitle(`${t('menu_rename_notebook')}...`)
 					.setIcon('edit')
 					.onClick(() => {
 						this.promptRenameNotebook();

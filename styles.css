@@ -2114,6 +2114,157 @@ input.betternotebook-hidden-input,
 	height: 14px;
 }
 
+/* ====================================================
+   Text Overflow & Reading-Direction Marquee Animation
+   ==================================================== */
+
+@keyframes betternotebook-marquee-ltr {
+	0%, 25% {
+		transform: translateX(0);
+	}
+	75%, 100% {
+		transform: translateX(min(0px, calc(-100% + 75px)));
+	}
+}
+
+@keyframes betternotebook-marquee-rtl {
+	0%, 25% {
+		transform: translateX(0);
+	}
+	75%, 100% {
+		transform: translateX(max(0px, calc(100% - 75px)));
+	}
+}
+
+/* Notebook selector title */
+.betternotebook-notebook-selector-btn {
+	max-width: 220px;
+}
+
+.betternotebook-notebook-title {
+	max-width: 150px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.betternotebook-notebook-selector-btn:hover .betternotebook-notebook-title {
+	text-overflow: clip;
+	animation: betternotebook-marquee-ltr 4s ease-in-out infinite alternate;
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-notebook-selector-btn:hover .betternotebook-notebook-title {
+	animation: betternotebook-marquee-rtl 4s ease-in-out infinite alternate;
+}
+
+/* Page Card Title */
+.betternotebook-page-card-title {
+	max-width: 170px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.betternotebook-page-card:hover .betternotebook-page-card-title span {
+	display: inline-block;
+	text-overflow: clip;
+	animation: betternotebook-marquee-ltr 4s ease-in-out infinite alternate;
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-page-card:hover .betternotebook-page-card-title span {
+	animation: betternotebook-marquee-rtl 4s ease-in-out infinite alternate;
+}
+
+/* Segmented Buttons and Dropdown Items */
+.betternotebook-lasso-seg-btn {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.betternotebook-lasso-seg-btn span:not(.seg-icon) {
+	display: inline-block;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	vertical-align: middle;
+}
+
+.betternotebook-lasso-seg-btn:hover span:not(.seg-icon) {
+	text-overflow: clip;
+	animation: betternotebook-marquee-ltr 3.5s ease-in-out infinite alternate;
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-lasso-seg-btn:hover span:not(.seg-icon) {
+	animation: betternotebook-marquee-rtl 3.5s ease-in-out infinite alternate;
+}
+
+/* Group suggestions dropdown items */
+.betternotebook-suggestion-item span:first-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 190px;
+	display: inline-block;
+}
+
+.betternotebook-suggestion-item:hover span:first-child {
+	text-overflow: clip;
+	animation: betternotebook-marquee-ltr 4s ease-in-out infinite alternate;
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-suggestion-item:hover span:first-child {
+	animation: betternotebook-marquee-rtl 4s ease-in-out infinite alternate;
+}
+
+/* Toolbar buttons with text */
+.betternotebook-action-btn.with-text {
+	max-width: 110px;
+}
+
+.betternotebook-action-btn.with-text span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	display: inline-block;
+}
+
+.betternotebook-action-btn.with-text:hover span {
+	text-overflow: clip;
+	animation: betternotebook-marquee-ltr 3.5s ease-in-out infinite alternate;
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-action-btn.with-text:hover span {
+	animation: betternotebook-marquee-rtl 3.5s ease-in-out infinite alternate;
+}
+
+/* RTL layout polish */
+.betternotebook-view-root[dir="rtl"] .betternotebook-toolbar {
+	flex-direction: row-reverse;
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-workspace {
+	flex-direction: row-reverse;
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-sidebar {
+	border-right: none;
+	border-left: 1px solid var(--background-modifier-border);
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-page-header {
+	left: auto;
+	right: 18px;
+}
+
+.betternotebook-view-root[dir="rtl"] .betternotebook-action-btn.small-caret {
+	margin-left: 0;
+	margin-right: -4px;
+}
+
+
 
 
 

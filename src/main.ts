@@ -171,4 +171,13 @@ export default class BetterNotebookPlugin extends Plugin {
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
 	}
+
+	public notifyLanguageChanged(): void {
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_DRAWING);
+		for (const leaf of leaves) {
+			if (leaf.view instanceof DrawingView) {
+				leaf.view.onLanguageChanged();
+			}
+		}
+	}
 }

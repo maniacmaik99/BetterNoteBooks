@@ -31,6 +31,7 @@ export class BetterNotebookSettingTab extends PluginSettingTab {
 					this.plugin.settings.language = val;
 					setLanguage(val);
 					await this.plugin.saveSettings();
+					this.plugin.notifyLanguageChanged();
 					this.display();
 				});
 			});

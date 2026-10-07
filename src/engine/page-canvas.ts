@@ -24,6 +24,8 @@ import { recognizeShape } from '../utils/shape-recognizer';
 import { ShapeOptionsModal } from '../ui/shape-options-modal';
 import { ImageCropModal } from '../ui/image-crop-modal';
 import { LassoManager } from './lasso-manager';
+import { getPageDisplayName } from './notebook-engine';
+import { t } from '../i18n';
 
 export interface PageCanvasEvents {
 	onStrokeAdded?: (pageId: string, stroke: Stroke) => void;
@@ -125,9 +127,9 @@ export class PageCanvas {
 		});
 		const pageLabel = pageHeader.createSpan({
 			cls: 'betternotebook-page-label',
-			text: `Seite ${page.pageNumber}${page.group ? ` • ${page.group}` : ''}`,
+			text: `${getPageDisplayName(page)}${page.group ? ` • ${page.group}` : ''}`,
 		});
-		pageLabel.title = page.title || `Seite ${page.pageNumber}`;
+		pageLabel.title = getPageDisplayName(page);
 		this.pageLabelEl = pageLabel;
 
 		// Page dimensions
@@ -276,8 +278,8 @@ export class PageCanvas {
 
 	public updateHeader(): void {
 		if (this.pageLabelEl) {
-			this.pageLabelEl.textContent = `Seite ${this.page.pageNumber}${this.page.group ? ` • ${this.page.group}` : ''}`;
-			this.pageLabelEl.title = this.page.title || `Seite ${this.page.pageNumber}`;
+			this.pageLabelEl.textContent = `${getPageDisplayName(this.page)}${this.page.group ? ` • ${this.page.group}` : ''}`;
+			this.pageLabelEl.title = getPageDisplayName(this.page);
 		}
 	}
 
@@ -484,7 +486,7 @@ export class PageCanvas {
 				menu.addItem((item) =>
 					item
 						.setTitle(
-							`Einfügen (${count} ${count === 1 ? 'Element' : 'Elemente'})`,
+							`${t('lasso_paste')} (${count} ${t('lasso_elements')})`,
 						)
 						.setIcon('clipboard-paste')
 						.onClick(() => {
@@ -495,7 +497,7 @@ export class PageCanvas {
 			}
 			menu.addItem((item) =>
 				item
-					.setTitle('Auswahl löschen')
+					.setTitle(t('lasso_delete'))
 					.setIcon('trash-2')
 					.onClick(() => {
 						this.lassoManager.deleteSelection();
@@ -520,7 +522,7 @@ export class PageCanvas {
 			menu.addItem((item) =>
 				item
 					.setTitle(
-						`Einfügen (${count} ${count === 1 ? 'Element' : 'Elemente'})`,
+						`${t('lasso_paste')} (${count} ${t('lasso_elements')})`,
 					)
 					.setIcon('clipboard-paste')
 					.onClick(() => {
@@ -763,7 +765,7 @@ export class PageCanvas {
 		menu.addItem((item) =>
 			item
 				.setTitle(
-					`Einfügen (${count} ${count === 1 ? 'Element' : 'Elemente'})`,
+					`${t('lasso_paste')} (${count} ${t('lasso_elements')})`,
 				)
 				.setIcon('clipboard-paste')
 				.onClick(() => {

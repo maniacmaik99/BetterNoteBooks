@@ -134,6 +134,17 @@ export interface TranslationDict {
 	sidebar_duplicate_page: string;
 	sidebar_delete_page: string;
 	sidebar_cannot_delete_last: string;
+	menu_manage_notebooks: string;
+	menu_rename_notebook: string;
+	menu_current_notebook: string;
+	sidebar_group_prefix: string;
+	sidebar_remove_group: string;
+	sidebar_empty_state: string;
+	sidebar_group_placeholder: string;
+	sidebar_add_group_title: string;
+	sidebar_select_topic: string;
+	sidebar_clear_filter: string;
+	sidebar_all_pages: string;
 	sidebar_page: string;
 
 	// Page Layout & Formats
