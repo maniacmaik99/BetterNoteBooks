@@ -19,28 +19,32 @@ Organize multi-page digital notebooks directly inside your Obsidian vault, sketc
 - **Clean start**: Automatically opens a pristine blank document with your chosen default paper format and template.
 
 ### ✍️ Natural Handwriting & Vector Inking
-- **Pressure-sensitive pen**: Responsive vector inking with smooth quadratic Bézier curves.
+- **Flawless vector curves**: Responsive inking rendered via smooth continuous Bézier curves without stepping or bead artifacts.
+- **Line styles**: Draw with Solid (`—`), Dashed (`- -`), or Dotted (`···`) lines in real time across Pen, Highlighter, and Shape tools.
 - **Customizable smoothing**: Configurable stroke smoothing algorithm to eliminate jitter.
 - **Zoom-adaptive line thickness**: Zoomed-in writing produces proportionally fine, ultra-sharp text.
+- **Direct tool popover**: Instant access to line style, smoothing, and palm rejection directly from the pen button or dropdown caret (`▾`).
 - **Quick size slots**: Two customizable size slots on the toolbar for instant thickness toggling. Click or right-click to fine-tune thickness via an inline popover.
 
 ### 🖍️ Realistic Highlighter
 - **Color blending**: Highlighters use realistic `multiply` blending that lets background paper lines shine through.
 - **Layering intelligence**: Highlighter strokes automatically render *beneath* pen ink, preserving clear handwriting legibility just like on physical paper.
+- **Uniform live inking**: Single-path rendering eliminates dark multiplier stacking or muddy overlapping caps during dragging.
+- **Highlighter settings**: Direct popover card offering line styles (solid, dashed, dotted) and opacity presets (100%, 75%, 50%).
 
 ### 🧹 Precision & Stroke Eraser
 - **Two erasing modes**:
   - **Stroke eraser**: Erases entire lines on contact.
   - **Precision eraser**: Excises exact segments touching the eraser circle with mathematical precision.
-- **Dual eraser size presets**: Quick-switch between two custom radius presets.
+- **Direct popover menu**: Switch modes, choose radius presets (8px, 16px, 28px), or clear active page ink with one tap.
 - **Anthracite cursor indicator**: Displays an elegant anthracite radius circle *only* while actively hovering and erasing over the canvas.
 
 ### 🧲 Advanced Lasso Tool
 - **Freehand & rectangle selection**: Select handwriting, shapes, and images effortlessly.
 - **Granular element filters**: Selectively include or exclude handwriting, highlighters, geometric shapes, or images.
-- **Floating action bar**:
+- **Direct popover & floating bar**:
   - **Change color**: Batch-recolor selected handwriting or shapes.
-  - **Duplicate & Transform**: Move, duplicate, or delete elements with a single click.
+  - **Duplicate & Transform**: Move, scale, duplicate, or delete elements with a single click.
   - **Clipboard support**: Copy (Ctrl/Cmd+C) and Paste (Ctrl/Cmd+V) across pages and notebooks.
 
 ### 🎨 Compact Horizontal Color Slider Carousel
@@ -53,8 +57,8 @@ Organize multi-page digital notebooks directly inside your Obsidian vault, sketc
   - Lines, connected polylines, and arrows
   - Arcs, circles, and ellipses
   - Rectangles, squares, and triangles
-- **Automatic shape fill**: Automatically fill closed geometric shapes with transparent colors.
-- **Interactive transform handles**: Fine-tune vertices, radius, line style (solid, dashed, dotted), opacity, and position locking after drawing.
+- **Direct shape popover**: Configure line styles (solid, dashed, dotted), contour opacity (100%, 75%, 50%), and auto-fill toggle.
+- **Interactive transform handles**: Fine-tune vertices, radius, line style, opacity, and position locking after drawing.
 
 ### ✋ Stylus-Only Mode (Palm Rejection)
 - **Accidental touch protection**: When stylus mode is active, only digital pen input creates ink.
@@ -91,6 +95,29 @@ Organize multi-page digital notebooks directly inside your Obsidian vault, sketc
    ```
 3. Copy the three files into that folder.
 4. Reload Obsidian and enable **BetterNoteBooks** under **Settings → Community plugins**.
+
+---
+
+## 📝 What's New in v1.1.1
+
+### 🖌️ Smooth Vector Inking & Zero Beading
+- **Continuous Bézier Rendering**: Completely eliminated the "caterpillar / bead" artifact and stepped thickness jumps on pen strokes. Strokes now draw as flawless, unified vector paths.
+- **120 FPS Buttery Smooth**: Non-destructive offscreen snapshotting provides lightning-fast, zero-lag inking even during rapid handwriting or scribbles.
+
+### 🎛️ Direct Tool Popover Cards
+- **Direct & Unnested UI**: Clicking the dropdown arrow (`▾`) or active tool button opens a clean, modern Popover Card (Pen, Highlighter, Eraser, Shapes, Lasso) without intermediate context menus.
+- **Bespoke Vector SVG Line Previews**: Replaced generic icons with crisp, custom SVG line style previews (Solid, Dashed, Dotted) that glow with your active Obsidian theme accent color.
+
+### 📏 Real-Time Dashed & Dotted Vector Lines
+- **Live In-Progress Drawing**: Dashed and dotted styles now render in real time as you drag your stylus across all drawing tools (Pen, Highlighter, Shapes), without requiring gesture-holds.
+
+### 🖍️ Non-Destructive Live Highlighter
+- **No Dark Overlap Stacking**: Solved the issue where rapid highlighter dragging caused overlapping caps in multiply mode to compound into black. Highlighters remain luminous, translucent, and uniform throughout the entire stroke.
+- **Full Settings Integration**: Added opacity controls (100%, 75%, 50%) and line style options to the Highlighter popover card.
+
+### 🧪 Comprehensive Quality & Test Suite
+- Added 53 comprehensive unit tests covering the notebook engine, spatial geometry, Ramer-Douglas-Peucker shape recognition, and lasso math.
+- 0 lint errors, 100% Obsidian Developer Policy compliance.
 
 ---
 
@@ -133,6 +160,9 @@ npm run dev
 
 # Build production bundle
 npm run build
+
+# Run unit tests
+npm test
 
 # Run lint checks
 npm run lint
