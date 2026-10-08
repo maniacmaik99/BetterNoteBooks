@@ -117,6 +117,65 @@ export class BaseToolPopover {
 
 		return header;
 	}
+
+	protected renderLineStyleSection(
+		currentDash: DashStyle,
+		onDashChange: (dash: DashStyle) => void,
+	): void {
+		if (!this.popoverEl) return;
+
+		const styleHeader = this.popoverEl.createDiv({
+			cls: 'betternotebook-lasso-filter-header',
+		});
+		styleHeader.createSpan({
+			cls: 'betternotebook-lasso-section-label',
+			text: t('popover_line_style').toUpperCase(),
+		});
+
+		const styleSegmented = this.popoverEl.createDiv({
+			cls: 'betternotebook-lasso-segmented',
+		});
+
+		const styles: { value: DashStyle; title: string; dashArray?: string }[] = [
+			{ value: 'solid', title: 'Durchgezogen (Solid)' },
+			{ value: 'dashed', title: 'Gestrichelt (Dashed)', dashArray: '6 4.5' },
+			{ value: 'dotted', title: 'Gepunktet (Dotted)', dashArray: '0.01 5.5' },
+		];
+
+		styles.forEach((s) => {
+			const isActive = currentDash === s.value;
+			const btn = styleSegmented.createEl('button', {
+				cls: `betternotebook-lasso-seg-btn betternotebook-line-style-btn ${isActive ? 'is-active' : ''}`,
+				title: s.title,
+			});
+			const svg = btn.createSvg('svg', {
+				cls: 'betternotebook-line-style-svg',
+				attr: {
+					width: '38',
+					height: '12',
+					viewBox: '0 0 38 12',
+				},
+			});
+			const lineAttr: Record<string, string> = {
+				x1: '3',
+				y1: '6',
+				x2: '35',
+				y2: '6',
+				stroke: 'currentColor',
+				'stroke-width': '2.5',
+				'stroke-linecap': 'round',
+			};
+			if (s.dashArray) {
+				lineAttr['stroke-dasharray'] = s.dashArray;
+			}
+			svg.createSvg('line', { attr: lineAttr });
+
+			btn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				onDashChange(s.value);
+			});
+		});
+	}
 }
 
 // ----------------------------------------------------
@@ -125,21 +184,25 @@ export class BaseToolPopover {
 export interface PenPopoverOptions {
 	anchorEl: HTMLElement;
 	currentStyle: StrokeStyle;
+	currentDashStyle: DashStyle;
 	stylusOnlyMode: boolean;
 	onToggleStylusOnly: () => void;
 	onSmoothingChange: (smoothing: number) => void;
+	onDashStyleChange: (dashStyle: DashStyle) => void;
 	onClose: () => void;
 }
 
 export class PenPopover extends BaseToolPopover {
 	private options: PenPopoverOptions;
 	private currentSmoothing: number;
+	private currentDash: DashStyle;
 	private stylusOnlyMode: boolean;
 
 	constructor(options: PenPopoverOptions) {
 		super(options.anchorEl, options.onClose);
 		this.options = options;
 		this.currentSmoothing = options.currentStyle.smoothing ?? 0.35;
+		this.currentDash = options.currentDashStyle || 'solid';
 		this.stylusOnlyMode = options.stylusOnlyMode;
 	}
 
@@ -155,7 +218,17 @@ export class PenPopover extends BaseToolPopover {
 
 		this.renderHeader(t('popover_pen_title'), 'pen-tool');
 
-		// Smoothing Section
+		// 1. Line Style (Solid, Dashed, Dotted)
+		this.renderLineStyleSection(this.currentDash, (dash) => {
+			this.currentDash = dash;
+			this.options.onDashStyleChange(dash);
+			this.render();
+		});
+
+		// Divider
+		this.popoverEl.createDiv({ cls: 'betternotebook-lasso-popover-divider' });
+
+		// 2. Smoothing Section
 		const section = this.popoverEl.createDiv({
 			cls: 'betternotebook-lasso-filter-header',
 		});
@@ -199,7 +272,7 @@ export class PenPopover extends BaseToolPopover {
 		// Divider
 		this.popoverEl.createDiv({ cls: 'betternotebook-lasso-popover-divider' });
 
-		// Palm Rejection Switch Row
+		// 3. Palm Rejection Switch Row
 		const palmList = this.popoverEl.createDiv({
 			cls: 'betternotebook-lasso-filter-list',
 		});
@@ -230,6 +303,95 @@ export class PenPopover extends BaseToolPopover {
 			this.stylusOnlyMode = !this.stylusOnlyMode;
 			this.options.onToggleStylusOnly();
 			this.render();
+		});
+	}
+}
+
+// ----------------------------------------------------
+// 1b. Highlighter Popover
+// ----------------------------------------------------
+export interface HighlighterPopoverOptions {
+	anchorEl: HTMLElement;
+	currentStyle: StrokeStyle;
+	currentDashStyle: DashStyle;
+	onDashStyleChange: (dashStyle: DashStyle) => void;
+	onOpacityChange?: (opacity: number) => void;
+	onClose: () => void;
+}
+
+export class HighlighterPopover extends BaseToolPopover {
+	private options: HighlighterPopoverOptions;
+	private currentDash: DashStyle;
+	private currentOpacity: number;
+
+	constructor(options: HighlighterPopoverOptions) {
+		super(options.anchorEl, options.onClose);
+		this.options = options;
+		this.currentDash = options.currentDashStyle || 'solid';
+		this.currentOpacity = options.currentStyle.opacity ?? 1.0;
+	}
+
+	public open(): void {
+		if (this.popoverEl) return;
+		this.createContainer('is-highlighter-popover');
+		this.render();
+	}
+
+	private render(): void {
+		if (!this.popoverEl) return;
+		this.popoverEl.empty();
+
+		this.renderHeader(t('toolbar_highlighter') || 'Textmarker', 'highlighter');
+
+		// 1. Line Style (Solid, Dashed, Dotted)
+		this.renderLineStyleSection(this.currentDash, (dash) => {
+			this.currentDash = dash;
+			this.options.onDashStyleChange(dash);
+			this.render();
+		});
+
+		// Divider
+		this.popoverEl.createDiv({ cls: 'betternotebook-lasso-popover-divider' });
+
+		// 2. Opacity
+		const opHeader = this.popoverEl.createDiv({
+			cls: 'betternotebook-lasso-filter-header',
+		});
+		opHeader.createSpan({
+			cls: 'betternotebook-lasso-section-label',
+			text: t('popover_line_opacity').toUpperCase(),
+		});
+
+		const opSegmented = this.popoverEl.createDiv({
+			cls: 'betternotebook-lasso-segmented',
+		});
+
+		const opOptions = [
+			{ label: '100%', value: 1.0 },
+			{ label: '75%', value: 0.75 },
+			{ label: '50%', value: 0.5 },
+		];
+
+		opOptions.forEach((o) => {
+			const isActive = Math.abs(this.currentOpacity - o.value) < 0.1;
+			const btn = opSegmented.createEl('button', {
+				cls: `betternotebook-lasso-seg-btn ${isActive ? 'is-active' : ''}`,
+				text: o.label,
+			});
+			btn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				this.currentOpacity = o.value;
+				this.options.onOpacityChange?.(o.value);
+				this.render();
+			});
+		});
+
+		// Description note
+		const note = this.popoverEl.createDiv({
+			cls: 'betternotebook-popover-hint',
+		});
+		note.createSpan({
+			text: 'Textmarker legt sich automatisch harmonisch hinter Vektorformen und Handschrift.',
 		});
 	}
 }
@@ -374,6 +536,7 @@ export class EraserPopover extends BaseToolPopover {
 export interface ShapePopoverOptions {
 	anchorEl: HTMLElement;
 	currentStyle: StrokeStyle;
+	currentDashStyle?: DashStyle;
 	onDashStyleChange: (dash: DashStyle) => void;
 	onOpacityChange: (opacity: number) => void;
 	onFillToggle: () => void;
@@ -389,7 +552,7 @@ export class ShapePopover extends BaseToolPopover {
 	constructor(options: ShapePopoverOptions) {
 		super(options.anchorEl, options.onClose);
 		this.options = options;
-		this.currentDash = options.currentStyle.dashStyle || 'solid';
+		this.currentDash = options.currentDashStyle || options.currentStyle.dashStyle || 'solid';
 		this.currentOpacity = options.currentStyle.opacity ?? 1.0;
 		this.currentHasFill = !!options.currentStyle.hasFill;
 	}
@@ -407,38 +570,10 @@ export class ShapePopover extends BaseToolPopover {
 		this.renderHeader(t('popover_shapes_title'), 'shapes');
 
 		// 1. Dash Style
-		const styleHeader = this.popoverEl.createDiv({
-			cls: 'betternotebook-lasso-filter-header',
-		});
-		styleHeader.createSpan({
-			cls: 'betternotebook-lasso-section-label',
-			text: t('popover_line_style').toUpperCase(),
-		});
-
-		const styleSegmented = this.popoverEl.createDiv({
-			cls: 'betternotebook-lasso-segmented',
-		});
-
-		const styles: { label: string; value: DashStyle; icon: string }[] = [
-			{ label: '—', value: 'solid', icon: 'minus' },
-			{ label: '- -', value: 'dashed', icon: 'more-horizontal' },
-			{ label: '···', value: 'dotted', icon: 'circle' },
-		];
-
-		styles.forEach((s) => {
-			const isActive = this.currentDash === s.value;
-			const btn = styleSegmented.createEl('button', {
-				cls: `betternotebook-lasso-seg-btn ${isActive ? 'is-active' : ''}`,
-			});
-			const icon = btn.createSpan({ cls: 'seg-icon' });
-			setIcon(icon, s.icon);
-			btn.createSpan({ text: s.label });
-			btn.addEventListener('click', (e) => {
-				e.stopPropagation();
-				this.currentDash = s.value;
-				this.options.onDashStyleChange(s.value);
-				this.render();
-			});
+		this.renderLineStyleSection(this.currentDash, (dash) => {
+			this.currentDash = dash;
+			this.options.onDashStyleChange(dash);
+			this.render();
 		});
 
 		// Divider

@@ -4,6 +4,7 @@ import { BetterNotebookSettings, DEFAULT_SETTINGS } from './types';
 import { BetterNotebookSettingTab } from './settings';
 import { NotebookStore } from './storage/notebook-store';
 import { setLanguage, t } from './i18n';
+import { runAllBenchmarks } from './utils/benchmark';
 
 export { VIEW_TYPE_DRAWING };
 
@@ -123,6 +124,18 @@ export default class BetterNotebookPlugin extends Plugin {
 				if (activeLeaf) {
 					activeLeaf.clearActivePageStrokes();
 				}
+			},
+		});
+
+		this.addCommand({
+			id: 'run-performance-benchmark',
+			name: 'Run performance benchmark (test tool)',
+			callback: () => {
+				const results = runAllBenchmarks();
+				const details = results
+					.map((r) => `• ${r.name}: ${r.durationMs}ms (${r.opsPerSec.toLocaleString()} ops/s)`)
+					.join('\n');
+				new Notice(`⚡ Benchmark-Ergebnisse:\n${details}`, 8000);
 			},
 		});
 

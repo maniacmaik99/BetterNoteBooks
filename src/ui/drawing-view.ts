@@ -27,6 +27,7 @@ import { PromptModal } from './prompt-modal';
 import { LassoPopover } from './lasso-popover';
 import {
 	PenPopover,
+	HighlighterPopover,
 	EraserPopover,
 	ShapePopover,
 	SizeAdjustmentPopover,
@@ -55,10 +56,16 @@ export class DrawingView extends TextFileView {
 	private saveStatusEl: HTMLElement | null = null;
 	private lassoPopover: LassoPopover | null = null;
 	private penPopover: PenPopover | null = null;
+	private highlighterPopover: HighlighterPopover | null = null;
 	private eraserPopover: EraserPopover | null = null;
 	private shapePopover: ShapePopover | null = null;
 	private sizeSlotsGroupEl: HTMLElement | null = null;
 	private sizeAdjustmentPopover: SizeAdjustmentPopover | null = null;
+
+	// Tool-specific Dash Styles (default: solid)
+	private penDashStyle: DashStyle = 'solid';
+	private highlighterDashStyle: DashStyle = 'solid';
+	private shapeDashStyle: DashStyle = 'solid';
 
 	// Page navigation controls
 	private pageIndicatorEl: HTMLElement | null = null;
@@ -103,6 +110,10 @@ export class DrawingView extends TextFileView {
 		const eraserSlots: [number, number] = plugin.settings?.eraserRadiusSlots || [12, 28];
 		const eraserActiveIdx = plugin.settings?.eraserActiveSlotIndex ?? 0;
 
+		this.penDashStyle = plugin.settings?.penDashStyle || 'solid';
+		this.highlighterDashStyle = plugin.settings?.highlighterDashStyle || 'solid';
+		this.shapeDashStyle = plugin.settings?.shapeDashStyle || 'solid';
+
 		this.currentStyle = {
 			color: plugin.settings?.defaultColor || '#242424',
 			width: penSlots[penActiveIdx] || plugin.settings?.defaultWidth || 2.5,
@@ -110,7 +121,7 @@ export class DrawingView extends TextFileView {
 			smoothing: plugin.settings?.smoothingFactor || 0.35,
 			eraserMode: plugin.settings?.eraserMode || 'precision',
 			eraserRadius: eraserSlots[eraserActiveIdx] || plugin.settings?.eraserRadius || 16,
-			dashStyle: plugin.settings?.defaultDashStyle || 'solid',
+			dashStyle: this.penDashStyle,
 			opacity: plugin.settings?.defaultOpacity ?? 1.0,
 			hasFill: plugin.settings?.defaultShapeFill ?? false,
 			fillOpacity: plugin.settings?.defaultShapeFillOpacity ?? 0.25,
@@ -390,65 +401,107 @@ export class DrawingView extends TextFileView {
 			cls: 'betternotebook-toolbar-group tools',
 		});
 
-		const penBtn = toolsGroup.createEl('button', {
-			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'pen' ? 'is-active' : ''} ${this.stylusOnlyMode ? 'has-stylus-mode' : ''}`,
-			title: `${t('toolbar_pen')}${this.stylusOnlyMode ? ` • ${t('popover_pen_stylus_only')}` : ''}`,
-		});
-		setIcon(penBtn, 'pen-tool');
-
-		const highlighterBtn = toolsGroup.createEl('button', {
-			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'highlighter' ? 'is-active' : ''}`,
-			title: t('toolbar_highlighter'),
-		});
-		setIcon(highlighterBtn, 'highlighter');
-
-		const eraserBtn = toolsGroup.createEl('button', {
-			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'eraser' ? 'is-active' : ''}`,
-			title: `${t('toolbar_eraser')} (${this.currentStyle.eraserMode === 'stroke' ? t('popover_eraser_stroke') : t('popover_eraser_precision')})`,
-		});
-		setIcon(eraserBtn, 'eraser');
-
-		const shapeBtn = toolsGroup.createEl('button', {
-			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'shape' ? 'is-active' : ''}`,
-			title: t('toolbar_shapes'),
-		});
-		setIcon(shapeBtn, 'shapes');
-
-		const lassoBtn = toolsGroup.createEl('button', {
-			cls: `betternotebook-tool-btn ${this.currentStyle.tool === 'lasso' ? 'is-active' : ''}`,
-			title: `${t('toolbar_lasso')} (${(this.currentStyle.lassoMode ?? 'freehand') === 'rectangle' ? t('lasso_rectangle') : t('lasso_freehand')})`,
-		});
-		try {
-			setIcon(lassoBtn, 'lasso-select');
-		} catch {
-			setIcon(lassoBtn, 'lasso');
+		interface ToolItem {
+			tool: DrawingTool;
+			wrapper: HTMLElement;
+			btn: HTMLElement;
+			caret: HTMLElement;
 		}
-		if (!lassoBtn.querySelector('svg')) {
-			lassoBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22a5 5 0 0 1-2-4"/><path d="M3.3 14A6.8 6.8 0 0 1 2 10c0-4.4 4.5-8 10-8s10 3.6 10 8-4.5 8-10 8a12 12 0 0 1-5-1"/><path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>`;
-		}
+
+		const createToolItem = (
+			tool: DrawingTool,
+			iconName: string,
+			tooltip: string,
+		): ToolItem => {
+			const isActive = this.currentStyle.tool === tool;
+			const wrapper = toolsGroup.createDiv({
+				cls: `betternotebook-tool-dropdown-wrapper ${isActive ? 'is-active' : ''}`,
+			});
+			const btn = wrapper.createEl('button', {
+				cls: `betternotebook-tool-btn ${isActive ? 'is-active' : ''} ${tool === 'pen' && this.stylusOnlyMode ? 'has-stylus-mode' : ''}`,
+				title: `${tooltip} (Klick: Auswählen • Klick/Rechtsklick wenn aktiv: Menü)`,
+			});
+			btn.type = 'button';
+			try {
+				setIcon(btn, iconName);
+			} catch {
+				try {
+					setIcon(btn, 'lasso');
+				} catch {
+					// fallback
+				}
+			}
+
+			const caret = wrapper.createEl('button', {
+				cls: `betternotebook-tool-caret-btn ${isActive ? 'is-active' : ''}`,
+				title: `${tooltip} Menü (Linienstile & Optionen)`,
+			});
+			caret.type = 'button';
+			setIcon(caret, 'chevron-down');
+
+			return { tool, wrapper, btn, caret };
+		};
+
+		const penItem = createToolItem(
+			'pen',
+			'pen-tool',
+			`${t('toolbar_pen')}${this.stylusOnlyMode ? ` • ${t('popover_pen_stylus_only')}` : ''}`,
+		);
+		const highlighterItem = createToolItem('highlighter', 'highlighter', t('toolbar_highlighter'));
+		const eraserItem = createToolItem(
+			'eraser',
+			'eraser',
+			`${t('toolbar_eraser')} (${this.currentStyle.eraserMode === 'stroke' ? t('popover_eraser_stroke') : t('popover_eraser_precision')})`,
+		);
+		const shapeItem = createToolItem('shape', 'shapes', t('toolbar_shapes'));
+		const lassoItem = createToolItem(
+			'lasso',
+			'lasso-select',
+			`${t('toolbar_lasso')} (${(this.currentStyle.lassoMode ?? 'freehand') === 'rectangle' ? t('lasso_rectangle') : t('lasso_freehand')})`,
+		);
+
+		const allToolItems = [penItem, highlighterItem, eraserItem, shapeItem, lassoItem];
 
 		const updateToolState = (tool: DrawingTool) => {
 			this.currentStyle.tool = tool;
-			penBtn.toggleClass('is-active', tool === 'pen');
-			highlighterBtn.toggleClass('is-active', tool === 'highlighter');
-			eraserBtn.toggleClass('is-active', tool === 'eraser');
-			shapeBtn.toggleClass('is-active', tool === 'shape');
-			lassoBtn.toggleClass('is-active', tool === 'lasso');
+			for (const item of allToolItems) {
+				const active = item.tool === tool;
+				item.wrapper.toggleClass('is-active', active);
+				item.btn.toggleClass('is-active', active);
+				item.caret.toggleClass('is-active', active);
+			}
+
+			// Tool-specific dash style separation (default: solid)
+			if (tool === 'pen') {
+				this.currentStyle.dashStyle = this.penDashStyle || 'solid';
+			} else if (tool === 'highlighter') {
+				this.currentStyle.dashStyle = this.highlighterDashStyle || 'solid';
+			} else if (tool === 'shape') {
+				this.currentStyle.dashStyle = this.shapeDashStyle || 'solid';
+			} else {
+				this.currentStyle.dashStyle = 'solid';
+			}
 
 			if (tool === 'eraser') {
 				const eraserSlots = this.plugin.settings?.eraserRadiusSlots || [12, 28];
 				const activeIdx = this.plugin.settings?.eraserActiveSlotIndex ?? 0;
 				const r = eraserSlots[activeIdx] || 16;
 				this.currentStyle.eraserRadius = r;
-				this.pageCanvases.forEach((pc) => pc.setStyle({ tool, eraserRadius: r }));
+				this.pageCanvases.forEach((pc) =>
+					pc.setStyle({ tool, eraserRadius: r, dashStyle: this.currentStyle.dashStyle }),
+				);
 			} else if (tool === 'pen' || tool === 'highlighter' || tool === 'shape') {
 				const penSlots = this.plugin.settings?.penWidthSlots || [1.8, 4.0];
 				const activeIdx = this.plugin.settings?.penActiveSlotIndex ?? 0;
 				const w = penSlots[activeIdx] || 2.5;
 				this.currentStyle.width = w;
-				this.pageCanvases.forEach((pc) => pc.setStyle({ tool, width: w }));
+				this.pageCanvases.forEach((pc) =>
+					pc.setStyle({ tool, width: w, dashStyle: this.currentStyle.dashStyle }),
+				);
 			} else {
-				this.pageCanvases.forEach((pc) => pc.setStyle({ tool }));
+				this.pageCanvases.forEach((pc) =>
+					pc.setStyle({ tool, dashStyle: this.currentStyle.dashStyle }),
+				);
 			}
 
 			this.renderSizeSlots();
@@ -466,56 +519,99 @@ export class DrawingView extends TextFileView {
 			}
 		};
 
-		penBtn.addEventListener('click', () => {
+		// Pen events
+		penItem.btn.addEventListener('click', () => {
 			if (this.currentStyle.tool === 'pen') {
-				this.togglePenPopover(penBtn);
+				this.togglePenPopover(penItem.caret);
 			} else {
 				updateToolState('pen');
 			}
 		});
-		penBtn.addEventListener('contextmenu', (ev) => {
+		penItem.btn.addEventListener('contextmenu', (ev) => {
 			ev.preventDefault();
-			this.togglePenPopover(penBtn);
+			if (this.currentStyle.tool !== 'pen') updateToolState('pen');
+			this.togglePenPopover(penItem.caret);
+		});
+		penItem.caret.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			if (this.currentStyle.tool !== 'pen') updateToolState('pen');
+			this.togglePenPopover(penItem.caret);
 		});
 
-		highlighterBtn.addEventListener('click', () => {
-			updateToolState('highlighter');
+		// Highlighter events
+		highlighterItem.btn.addEventListener('click', () => {
+			if (this.currentStyle.tool === 'highlighter') {
+				this.toggleHighlighterPopover(highlighterItem.caret);
+			} else {
+				updateToolState('highlighter');
+			}
+		});
+		highlighterItem.btn.addEventListener('contextmenu', (ev) => {
+			ev.preventDefault();
+			if (this.currentStyle.tool !== 'highlighter') updateToolState('highlighter');
+			this.toggleHighlighterPopover(highlighterItem.caret);
+		});
+		highlighterItem.caret.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			if (this.currentStyle.tool !== 'highlighter') updateToolState('highlighter');
+			this.toggleHighlighterPopover(highlighterItem.caret);
 		});
 
-		eraserBtn.addEventListener('click', () => {
+		// Eraser events
+		eraserItem.btn.addEventListener('click', () => {
 			if (this.currentStyle.tool === 'eraser') {
-				this.toggleEraserPopover(eraserBtn);
+				this.toggleEraserPopover(eraserItem.caret);
 			} else {
 				updateToolState('eraser');
 			}
 		});
-		eraserBtn.addEventListener('contextmenu', (ev) => {
+		eraserItem.btn.addEventListener('contextmenu', (ev) => {
 			ev.preventDefault();
-			this.toggleEraserPopover(eraserBtn);
+			if (this.currentStyle.tool !== 'eraser') updateToolState('eraser');
+			this.toggleEraserPopover(eraserItem.caret);
+		});
+		eraserItem.caret.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			if (this.currentStyle.tool !== 'eraser') updateToolState('eraser');
+			this.toggleEraserPopover(eraserItem.caret);
 		});
 
-		shapeBtn.addEventListener('click', () => {
+		// Shape events
+		shapeItem.btn.addEventListener('click', () => {
 			if (this.currentStyle.tool === 'shape') {
-				this.toggleShapePopover(shapeBtn);
+				this.toggleShapePopover(shapeItem.caret);
 			} else {
 				updateToolState('shape');
 			}
 		});
-		shapeBtn.addEventListener('contextmenu', (ev) => {
+		shapeItem.btn.addEventListener('contextmenu', (ev) => {
 			ev.preventDefault();
-			this.toggleShapePopover(shapeBtn);
+			if (this.currentStyle.tool !== 'shape') updateToolState('shape');
+			this.toggleShapePopover(shapeItem.caret);
+		});
+		shapeItem.caret.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			if (this.currentStyle.tool !== 'shape') updateToolState('shape');
+			this.toggleShapePopover(shapeItem.caret);
 		});
 
-		lassoBtn.addEventListener('click', () => {
+		// Lasso events
+		lassoItem.btn.addEventListener('click', () => {
 			if (this.currentStyle.tool === 'lasso') {
-				this.toggleLassoPopover(lassoBtn);
+				this.toggleLassoPopover(lassoItem.caret);
 			} else {
 				updateToolState('lasso');
 			}
 		});
-		lassoBtn.addEventListener('contextmenu', (ev) => {
+		lassoItem.btn.addEventListener('contextmenu', (ev) => {
 			ev.preventDefault();
-			this.toggleLassoPopover(lassoBtn);
+			if (this.currentStyle.tool !== 'lasso') updateToolState('lasso');
+			this.toggleLassoPopover(lassoItem.caret);
+		});
+		lassoItem.caret.addEventListener('click', (ev) => {
+			ev.stopPropagation();
+			if (this.currentStyle.tool !== 'lasso') updateToolState('lasso');
+			this.toggleLassoPopover(lassoItem.caret);
 		});
 
 		// Colors Group (Horizontal Scrollable Carousel / Slider)
@@ -1523,6 +1619,10 @@ export class DrawingView extends TextFileView {
 			this.penPopover.close();
 			this.penPopover = null;
 		}
+		if (this.highlighterPopover) {
+			this.highlighterPopover.close();
+			this.highlighterPopover = null;
+		}
 		if (this.eraserPopover) {
 			this.eraserPopover.close();
 			this.eraserPopover = null;
@@ -1548,6 +1648,7 @@ export class DrawingView extends TextFileView {
 		this.penPopover = new PenPopover({
 			anchorEl: buttonEl,
 			currentStyle: this.currentStyle,
+			currentDashStyle: this.penDashStyle,
 			stylusOnlyMode: this.stylusOnlyMode,
 			onToggleStylusOnly: () => {
 				this.toggleStylusOnlyMode();
@@ -1555,11 +1656,40 @@ export class DrawingView extends TextFileView {
 			onSmoothingChange: (smoothing) => {
 				this.setSmoothingFactor(smoothing);
 			},
+			onDashStyleChange: (dash) => {
+				this.setPenDashStyle(dash);
+			},
 			onClose: () => {
 				this.penPopover = null;
 			},
 		});
 		this.penPopover.open();
+	}
+
+	private toggleHighlighterPopover(buttonEl: HTMLElement): void {
+		if (this.highlighterPopover) {
+			this.highlighterPopover.close();
+			this.highlighterPopover = null;
+			return;
+		}
+		this.closeAllPopovers();
+
+		this.highlighterPopover = new HighlighterPopover({
+			anchorEl: buttonEl,
+			currentStyle: this.currentStyle,
+			currentDashStyle: this.highlighterDashStyle,
+			onDashStyleChange: (dash) => {
+				this.setHighlighterDashStyle(dash);
+			},
+			onOpacityChange: (opacity) => {
+				this.currentStyle.opacity = opacity;
+				this.pageCanvases.forEach((pc) => pc.setStyle({ opacity }));
+			},
+			onClose: () => {
+				this.highlighterPopover = null;
+			},
+		});
+		this.highlighterPopover.open();
 	}
 
 	private toggleEraserPopover(buttonEl: HTMLElement): void {
@@ -1600,6 +1730,7 @@ export class DrawingView extends TextFileView {
 		this.shapePopover = new ShapePopover({
 			anchorEl: buttonEl,
 			currentStyle: this.currentStyle,
+			currentDashStyle: this.shapeDashStyle,
 			onDashStyleChange: (dash) => {
 				this.setShapeDashStyle(dash);
 			},
@@ -1677,16 +1808,58 @@ export class DrawingView extends TextFileView {
 		new Notice(`Radierer-Größe: ${Math.round(radius)} px`);
 	}
 
-	public setShapeDashStyle(dashStyle: DashStyle): void {
-		this.currentStyle.dashStyle = dashStyle;
-		this.plugin.settings.defaultDashStyle = dashStyle;
+	public setPenDashStyle(dashStyle: DashStyle): void {
+		this.penDashStyle = dashStyle;
+		this.plugin.settings.penDashStyle = dashStyle;
 		void this.plugin.saveSettings();
-		this.pageCanvases.forEach((pc) => pc.setStyle({ dashStyle }));
-		new Notice(
-			`Linienstil: ${dashStyle === 'dashed' ? 'Gestrichelt' : dashStyle === 'dotted' ? 'Gepunktet' : 'Durchgezogen'}`,
-			1500,
-		);
+		if (this.currentStyle.tool === 'pen') {
+			this.currentStyle.dashStyle = dashStyle;
+			this.pageCanvases.forEach((pc) => pc.setStyle({ dashStyle }));
+		}
+		const label =
+			dashStyle === 'dashed'
+				? 'Gestrichelt'
+				: dashStyle === 'dotted'
+					? 'Gepunktet'
+					: 'Durchgezogen';
+		new Notice(`Stift-Linienstil: ${label}`, 1500);
 	}
+
+	public setHighlighterDashStyle(dashStyle: DashStyle): void {
+		this.highlighterDashStyle = dashStyle;
+		this.plugin.settings.highlighterDashStyle = dashStyle;
+		void this.plugin.saveSettings();
+		if (this.currentStyle.tool === 'highlighter') {
+			this.currentStyle.dashStyle = dashStyle;
+			this.pageCanvases.forEach((pc) => pc.setStyle({ dashStyle }));
+		}
+		const label =
+			dashStyle === 'dashed'
+				? 'Gestrichelt'
+				: dashStyle === 'dotted'
+					? 'Gepunktet'
+					: 'Durchgezogen';
+		new Notice(`Textmarker-Linienstil: ${label}`, 1500);
+	}
+
+	public setShapeDashStyle(dashStyle: DashStyle): void {
+		this.shapeDashStyle = dashStyle;
+		this.plugin.settings.shapeDashStyle = dashStyle;
+		void this.plugin.saveSettings();
+		if (this.currentStyle.tool === 'shape') {
+			this.currentStyle.dashStyle = dashStyle;
+			this.pageCanvases.forEach((pc) => pc.setStyle({ dashStyle }));
+		}
+		const label =
+			dashStyle === 'dashed'
+				? 'Gestrichelt'
+				: dashStyle === 'dotted'
+					? 'Gepunktet'
+					: 'Durchgezogen';
+		new Notice(`Formen-Linienstil: ${label}`, 1500);
+	}
+
+
 
 	public setShapeOpacity(opacity: number): void {
 		this.currentStyle.opacity = opacity;

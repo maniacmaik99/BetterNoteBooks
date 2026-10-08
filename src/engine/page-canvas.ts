@@ -11,9 +11,7 @@ import {
 	DashStyle,
 } from '../types';
 import {
-	lerp,
 	getMidPoint,
-	computeTargetWidth,
 	computeBoundingBox,
 	computeShapeBoundingBox,
 	isPointNearStroke,
@@ -41,8 +39,8 @@ export class PageCanvas {
 	public readonly page: NotebookPage;
 	public readonly pageEl: HTMLElement;
 
-	private canvas: HTMLCanvasElement;
-	private ctx: CanvasRenderingContext2D;
+	public readonly canvas: HTMLCanvasElement;
+	public readonly ctx: CanvasRenderingContext2D;
 	private pageLabelEl: HTMLElement;
 	private imageOverlayEl: HTMLElement;
 	private shapeOverlayEl: HTMLElement;
@@ -89,6 +87,11 @@ export class PageCanvas {
 	private lassoHoldStartPoint: { x: number; y: number } | null = null;
 	private lassoHoldClientPoint: { x: number; y: number } | null = null;
 	private isLassoHoldTriggered = false;
+
+	// Draft canvas for non-destructive live rendering (highlighter translucency & live dashed/dotted strokes)
+	private draftCanvas: HTMLCanvasElement | null = null;
+	private draftCtx: CanvasRenderingContext2D | null = null;
+	private isDraftActive = false;
 
 	private currentStyle: StrokeStyle;
 	private pressureSensitivity = 2.0;
@@ -139,7 +142,7 @@ export class PageCanvas {
 		this.pageEl.style.width = `${this.cssWidth}px`;
 		this.pageEl.style.height = `${this.cssHeight}px`;
 
-		// 2. Create canvas
+		// 2. Create base canvas
 		this.canvas = this.pageEl.createEl('canvas', {
 			cls: 'betternotebook-canvas',
 		});
@@ -194,8 +197,9 @@ export class PageCanvas {
 	}
 
 	public setVisibility(visible: boolean): void {
+		const wasVisible = this.isVisible;
 		this.isVisible = visible;
-		if (visible && this.isDirty) {
+		if (visible && (!wasVisible || this.isDirty)) {
 			this.isDirty = false;
 			this.redrawAll();
 		}
@@ -247,13 +251,17 @@ export class PageCanvas {
 		const targetDpr = Math.min(4.0, Math.max(1.0, baseDpr * this.currentZoom));
 		if (Math.abs(targetDpr - this.currentDpr) > 0.05) {
 			this.currentDpr = targetDpr;
-			this.canvas.width = Math.round(this.cssWidth * targetDpr);
-			this.canvas.height = Math.round(this.cssHeight * targetDpr);
+			const w = Math.round(this.cssWidth * targetDpr);
+			const h = Math.round(this.cssHeight * targetDpr);
+
+			this.canvas.width = w;
+			this.canvas.height = h;
 			this.canvas.style.width = `${this.cssWidth}px`;
 			this.canvas.style.height = `${this.cssHeight}px`;
 			this.ctx.setTransform(targetDpr, 0, 0, targetDpr, 0, 0);
 			this.ctx.imageSmoothingEnabled = true;
 			this.ctx.imageSmoothingQuality = 'high';
+
 			this.redrawAll();
 		}
 	}
@@ -295,11 +303,13 @@ export class PageCanvas {
 		const dpr = this.getDpr();
 		this.currentDpr = dpr;
 
-		this.canvas.width = Math.round(this.cssWidth * dpr);
-		this.canvas.height = Math.round(this.cssHeight * dpr);
+		const w = Math.round(this.cssWidth * dpr);
+		const h = Math.round(this.cssHeight * dpr);
+
+		this.canvas.width = w;
+		this.canvas.height = h;
 		this.canvas.style.width = `${this.cssWidth}px`;
 		this.canvas.style.height = `${this.cssHeight}px`;
-
 		this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 	}
 
@@ -327,7 +337,55 @@ export class PageCanvas {
 		this.canvas.removeEventListener('pointerleave', this.onPointerLeave);
 		this.canvas.removeEventListener('contextmenu', this.onContextMenu);
 		window.removeEventListener('blur', this.onWindowBlur);
+		this.draftCanvas = null;
+		this.draftCtx = null;
+		this.canvas.remove();
 		this.pageEl.remove();
+	}
+
+	private ensureDraftCanvas(): void {
+		if (!this.draftCanvas) {
+			this.draftCanvas = createEl('canvas');
+		}
+		if (
+			this.draftCanvas.width !== this.canvas.width ||
+			this.draftCanvas.height !== this.canvas.height
+		) {
+			this.draftCanvas.width = this.canvas.width;
+			this.draftCanvas.height = this.canvas.height;
+		}
+		if (!this.draftCtx) {
+			this.draftCtx = this.draftCanvas.getContext('2d');
+		}
+	}
+
+	private snapshotToDraft(): void {
+		this.ensureDraftCanvas();
+		if (this.draftCtx) {
+			this.draftCtx.save();
+			this.draftCtx.setTransform(1, 0, 0, 1, 0, 0);
+			this.draftCtx.globalCompositeOperation = 'copy';
+			this.draftCtx.drawImage(this.canvas, 0, 0);
+			this.draftCtx.restore();
+		}
+	}
+
+	private restoreFromDraft(): void {
+		if (this.draftCanvas) {
+			this.ctx.save();
+			this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+			this.ctx.globalCompositeOperation = 'copy';
+			this.ctx.drawImage(this.draftCanvas, 0, 0);
+			this.ctx.restore();
+			this.ctx.setTransform(
+				this.currentDpr,
+				0,
+				0,
+				this.currentDpr,
+				0,
+				0,
+			);
+		}
 	}
 
 	private onContextMenu = (e: MouseEvent): void => {
@@ -918,20 +976,15 @@ export class PageCanvas {
 		}
 
 		// Handle Drawing Tools (Pen / Highlighter / Shape)
-		const isPen = e.pointerType === 'pen';
-		const isHighlighter = this.currentStyle.tool === 'highlighter';
+		this.isDraftActive = true;
+		this.snapshotToDraft();
 
+		const isHighlighter = this.currentStyle.tool === 'highlighter';
 		const zoom = this.zoomAdaptive ? Math.max(0.1, this.currentZoom) : 1.0;
 		const baseWidth = (isHighlighter
 			? Math.max(18, this.currentStyle.width * 5.5)
 			: this.currentStyle.width) / zoom;
-
-		this.currentLineWidth = computeTargetWidth(
-			baseWidth,
-			e.pressure,
-			isPen,
-			this.pressureSensitivity,
-		);
+		this.currentLineWidth = baseWidth;
 
 		const firstPoint: Point = {
 			x,
@@ -949,13 +1002,8 @@ export class PageCanvas {
 
 		this.lastMidPoint = { x, y };
 
-		// Render initial touch (pen & shape only; highlighter strokes start cleanly as a path)
-		if (!isHighlighter) {
-			this.setupContextForStyle(this.currentStroke.style);
-			this.ctx.beginPath();
-			this.ctx.arc(x, y, this.currentLineWidth / 2, 0, Math.PI * 2);
-			this.ctx.fill();
-		}
+		// Render initial touch
+		this.renderStroke(this.currentStroke);
 
 		// Start Draw-and-Hold timer for Shape & Line recognition (Pen, Shape, or Highlighter)
 		if (
@@ -1130,14 +1178,10 @@ export class PageCanvas {
 
 		if (this.activePointerId !== e.pointerId) return;
 
-		const isPen = e.pointerType === 'pen';
-		const isHighlighter = this.currentStyle.tool === 'highlighter';
 		const coalesced =
 			typeof e.getCoalescedEvents === 'function'
 				? e.getCoalescedEvents()
 				: [e];
-
-		let addedNewPoint = false;
 
 		for (const event of coalesced) {
 			const pt = this.getCanvasPoint(event);
@@ -1178,23 +1222,6 @@ export class PageCanvas {
 				this.startHoldTimer();
 			}
 
-			const zoom = this.zoomAdaptive ? Math.max(0.1, this.currentZoom) : 1.0;
-			const baseWidth = (isHighlighter
-				? Math.max(18, this.currentStyle.width * 5.5)
-				: this.currentStyle.width) / zoom;
-
-			const targetWidth = computeTargetWidth(
-				baseWidth,
-				event.pressure,
-				isPen,
-				this.pressureSensitivity,
-			);
-			this.currentLineWidth = lerp(
-				this.currentLineWidth,
-				targetWidth,
-				this.currentStyle.smoothing,
-			);
-
 			const currentPt: Point = {
 				x: pt.x,
 				y: pt.y,
@@ -1204,30 +1231,11 @@ export class PageCanvas {
 
 			this.currentPoints.push(currentPt);
 			this.currentStroke?.points.push(currentPt);
-			addedNewPoint = true;
-
-			if (!isHighlighter) {
-				if (this.currentPoints.length >= 2 && this.lastMidPoint && this.currentStroke) {
-					const pPrev =
-						this.currentPoints[this.currentPoints.length - 2] ?? currentPt;
-					const mid = getMidPoint(pPrev, currentPt);
-
-					this.setupContextForStyle(this.currentStroke.style);
-					this.ctx.lineWidth = this.currentLineWidth;
-
-					this.ctx.beginPath();
-					this.ctx.moveTo(this.lastMidPoint.x, this.lastMidPoint.y);
-					this.ctx.quadraticCurveTo(pPrev.x, pPrev.y, mid.x, mid.y);
-					this.ctx.stroke();
-
-					this.lastMidPoint = mid;
-				}
-			}
 		}
 
-		if (isHighlighter && addedNewPoint && this.currentStroke) {
-			this.redrawAll();
-			this.renderHighlighterStroke(this.currentStroke);
+		if (this.currentStroke && this.currentPoints.length >= 2) {
+			this.restoreFromDraft();
+			this.renderStroke(this.currentStroke);
 		}
 	};
 
@@ -1486,19 +1494,6 @@ export class PageCanvas {
 				this.redrawAll();
 			} else {
 				// Normal freehand stroke
-				const isHighlighter = this.currentStyle.tool === 'highlighter';
-				if (!isHighlighter && this.currentPoints.length >= 2 && this.lastMidPoint && this.currentStroke) {
-					const lastPoint = this.currentPoints[this.currentPoints.length - 1];
-					if (lastPoint) {
-						this.setupContextForStyle(this.currentStroke.style);
-						this.ctx.lineWidth = this.currentLineWidth;
-						this.ctx.beginPath();
-						this.ctx.moveTo(this.lastMidPoint.x, this.lastMidPoint.y);
-						this.ctx.lineTo(lastPoint.x, lastPoint.y);
-						this.ctx.stroke();
-					}
-				}
-
 				if (this.currentStroke && this.currentStroke.points.length > 0) {
 					this.currentStroke.bbox = computeBoundingBox(
 						this.currentStroke.points,
@@ -1517,6 +1512,7 @@ export class PageCanvas {
 			this.currentPoints = [];
 			this.lastMidPoint = null;
 			this.snappedShape = null;
+			this.isDraftActive = false;
 		}
 	}
 
@@ -2010,7 +2006,26 @@ export class PageCanvas {
 					continue;
 				}
 
-				const pointsInside = stroke.points.some((p) => Math.hypot(p.x - x, p.y - y) <= radius);
+				// Fast AABB check FIRST before scanning points!
+				const bbox = stroke.bbox;
+				if (bbox) {
+					if (
+						x < bbox.minX - radius ||
+						x > bbox.maxX + radius ||
+						y < bbox.minY - radius ||
+						y > bbox.maxY + radius
+					) {
+						remainingStrokes.push(stroke);
+						continue;
+					}
+				}
+
+				const radiusSq = radius * radius;
+				const pointsInside = stroke.points.some((p) => {
+					const dx = p.x - x;
+					const dy = p.y - y;
+					return dx * dx + dy * dy <= radiusSq;
+				});
 				if (!pointsInside && !isPointNearStroke(stroke, x, y, radius)) {
 					remainingStrokes.push(stroke);
 					continue;
@@ -2065,31 +2080,36 @@ export class PageCanvas {
 		}
 	}
 
-	private setupContextForStyle(style: StrokeStyle, shape?: GeometricShape): void {
-		this.ctx.lineCap = 'round';
-		this.ctx.lineJoin = 'round';
-		this.ctx.strokeStyle = style.color;
-		this.ctx.fillStyle = style.color;
+	private setupContextForStyle(
+		style: StrokeStyle,
+		shape?: GeometricShape,
+		targetCtx: CanvasRenderingContext2D = this.ctx,
+	): void {
+		targetCtx.lineCap = 'round';
+		targetCtx.lineJoin = 'round';
+		targetCtx.strokeStyle = style.color;
+		targetCtx.fillStyle = style.color;
 
 		const dashStyle: DashStyle = shape?.dashStyle || style.dashStyle || 'solid';
 		const w = Math.max(1, style.width);
 		if (dashStyle === 'dashed') {
-			this.ctx.setLineDash([w * 3.5, w * 2.5]);
+			targetCtx.setLineDash([w * 3.2, w * 2.2]);
 		} else if (dashStyle === 'dotted') {
-			this.ctx.setLineDash([w * 0.8, w * 2.0]);
+			targetCtx.setLineDash([0.01, w * 2.2]);
 		} else {
-			this.ctx.setLineDash([]);
+			targetCtx.setLineDash([]);
 		}
+		targetCtx.lineDashOffset = 0;
 
 		const opacity = shape?.opacity ?? style.opacity ?? 1.0;
 
 		if (style.tool === 'highlighter') {
 			// Multiply mode gives real physical marker blending without muddy overlaps
-			this.ctx.globalCompositeOperation = 'multiply';
-			this.ctx.globalAlpha = 0.55 * opacity;
+			targetCtx.globalCompositeOperation = 'multiply';
+			targetCtx.globalAlpha = 0.55 * opacity;
 		} else {
-			this.ctx.globalCompositeOperation = 'source-over';
-			this.ctx.globalAlpha = Math.max(0.05, Math.min(1.0, opacity));
+			targetCtx.globalCompositeOperation = 'source-over';
+			targetCtx.globalAlpha = Math.max(0.05, Math.min(1.0, opacity));
 		}
 	}
 
@@ -2098,6 +2118,12 @@ export class PageCanvas {
 	 * Highlighters are layered underneath pen strokes (GoodNotes behavior).
 	 */
 	public redrawAll(): void {
+		// Viewport virtualization: skip redraw completely if page is scrolled off-screen
+		if (!this.isVisible) {
+			this.isDirty = true;
+			return;
+		}
+
 		// 1. Clear background completely
 		this.ctx.save();
 		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2128,20 +2154,18 @@ export class PageCanvas {
 			}
 		}
 
-		// 4. Render Highlighters first (layer underneath ink)
-		const highlighters = this.page.strokes.filter(
-			(s) => s.style.tool === 'highlighter',
-		);
-		for (const hl of highlighters) {
-			this.renderStroke(hl);
+		// 4. Render Highlighters first (layer underneath ink), then Pen and Shape strokes on top
+		const normalStrokes: Stroke[] = [];
+		for (let i = 0; i < this.page.strokes.length; i++) {
+			const s = this.page.strokes[i]!;
+			if (s.style.tool === 'highlighter') {
+				this.renderStroke(s);
+			} else {
+				normalStrokes.push(s);
+			}
 		}
-
-		// 5. Render Pen and Shape strokes on top
-		const normalStrokes = this.page.strokes.filter(
-			(s) => s.style.tool !== 'highlighter',
-		);
-		for (const stroke of normalStrokes) {
-			this.renderStroke(stroke);
+		for (let i = 0; i < normalStrokes.length; i++) {
+			this.renderStroke(normalStrokes[i]!);
 		}
 
 		// 6. Update Shape lock badges
@@ -2176,42 +2200,40 @@ export class PageCanvas {
 			const lineHeight = 34;
 			const topMargin = 60;
 
+			this.ctx.beginPath();
 			for (let y = topMargin; y < this.cssHeight; y += lineHeight) {
-				this.ctx.beginPath();
 				this.ctx.moveTo(20, y);
 				this.ctx.lineTo(this.cssWidth - 20, y);
-				this.ctx.stroke();
 			}
+			this.ctx.stroke();
 		} else if (bg === 'grid') {
 			this.ctx.strokeStyle = '#edf2f7';
 			this.ctx.lineWidth = 1;
 			const gridSize = 24;
 
+			this.ctx.beginPath();
 			for (let x = gridSize; x < this.cssWidth; x += gridSize) {
-				this.ctx.beginPath();
 				this.ctx.moveTo(x, 0);
 				this.ctx.lineTo(x, this.cssHeight);
-				this.ctx.stroke();
 			}
-
 			for (let y = gridSize; y < this.cssHeight; y += gridSize) {
-				this.ctx.beginPath();
 				this.ctx.moveTo(0, y);
 				this.ctx.lineTo(this.cssWidth, y);
-				this.ctx.stroke();
 			}
+			this.ctx.stroke();
 		} else if (bg === 'dotted') {
 			this.ctx.fillStyle = '#cbd5e1';
 			const dotSpacing = 24;
 			const dotRadius = 1;
 
+			this.ctx.beginPath();
 			for (let x = dotSpacing; x < this.cssWidth; x += dotSpacing) {
 				for (let y = dotSpacing; y < this.cssHeight; y += dotSpacing) {
-					this.ctx.beginPath();
+					this.ctx.moveTo(x + dotRadius, y);
 					this.ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-					this.ctx.fill();
 				}
 			}
+			this.ctx.fill();
 		}
 
 		this.ctx.restore();
@@ -2254,14 +2276,6 @@ export class PageCanvas {
 			return;
 		}
 
-		const isPen = points.some((p) => p.pressure > 0 && p.pressure !== 0.5);
-		let currentW = computeTargetWidth(
-			stroke.style.width,
-			firstPoint.pressure,
-			isPen,
-			this.pressureSensitivity,
-		);
-
 		const secondPoint = points[1];
 		if (!secondPoint) {
 			this.ctx.restore();
@@ -2270,78 +2284,59 @@ export class PageCanvas {
 
 		let lastMid = getMidPoint(firstPoint, secondPoint);
 
+		this.ctx.lineWidth = stroke.style.width;
 		this.ctx.beginPath();
 		this.ctx.moveTo(firstPoint.x, firstPoint.y);
 		this.ctx.lineTo(lastMid.x, lastMid.y);
-		this.ctx.lineWidth = currentW;
-		this.ctx.stroke();
-
 		for (let i = 2; i < points.length; i++) {
 			const ptPrev = points[i - 1];
 			const ptCurr = points[i];
 			if (!ptPrev || !ptCurr) continue;
-
-			const targetW = computeTargetWidth(
-				stroke.style.width,
-				ptCurr.pressure,
-				isPen,
-				this.pressureSensitivity,
-			);
-			currentW = lerp(currentW, targetW, stroke.style.smoothing);
-
 			const mid = getMidPoint(ptPrev, ptCurr);
-
-			this.ctx.beginPath();
-			this.ctx.moveTo(lastMid.x, lastMid.y);
 			this.ctx.quadraticCurveTo(ptPrev.x, ptPrev.y, mid.x, mid.y);
-			this.ctx.lineWidth = currentW;
-			this.ctx.stroke();
-
 			lastMid = mid;
 		}
-
 		const lastPoint = points[points.length - 1];
 		if (lastPoint) {
-			this.ctx.beginPath();
-			this.ctx.moveTo(lastMid.x, lastMid.y);
 			this.ctx.lineTo(lastPoint.x, lastPoint.y);
-			this.ctx.lineWidth = currentW;
-			this.ctx.stroke();
 		}
-
+		this.ctx.stroke();
 		this.ctx.restore();
 	}
 
-	private renderHighlighterStroke(stroke: Stroke): void {
+	private renderHighlighterStroke(
+		stroke: Stroke,
+		targetCtx: CanvasRenderingContext2D = this.ctx,
+	): void {
 		const points = stroke.points;
 		if (points.length === 0) return;
 
 		const firstPoint = points[0];
 		if (!firstPoint) return;
 
-		this.ctx.save();
-		this.setupContextForStyle(stroke.style);
+		targetCtx.save();
+		this.setupContextForStyle(stroke.style, undefined, targetCtx);
 
 		if (points.length === 1) {
-			this.ctx.beginPath();
-			this.ctx.arc(
+			targetCtx.beginPath();
+			targetCtx.arc(
 				firstPoint.x,
 				firstPoint.y,
 				stroke.style.width / 2,
 				0,
 				Math.PI * 2,
 			);
-			this.ctx.fill();
-			this.ctx.restore();
+			targetCtx.fill();
+			targetCtx.restore();
 			return;
 		}
 
-		this.ctx.lineWidth = stroke.style.width;
-		this.ctx.lineCap = 'round';
-		this.ctx.lineJoin = 'round';
+		targetCtx.lineWidth = stroke.style.width;
+		targetCtx.lineCap = 'round';
+		targetCtx.lineJoin = 'round';
 
-		this.ctx.beginPath();
-		this.ctx.moveTo(firstPoint.x, firstPoint.y);
+		targetCtx.beginPath();
+		targetCtx.moveTo(firstPoint.x, firstPoint.y);
 
 		for (let i = 1; i < points.length - 1; i++) {
 			const ptCurr = points[i];
@@ -2349,16 +2344,16 @@ export class PageCanvas {
 			if (!ptCurr || !ptNext) continue;
 
 			const mid = getMidPoint(ptCurr, ptNext);
-			this.ctx.quadraticCurveTo(ptCurr.x, ptCurr.y, mid.x, mid.y);
+			targetCtx.quadraticCurveTo(ptCurr.x, ptCurr.y, mid.x, mid.y);
 		}
 
 		const lastPoint = points[points.length - 1];
 		if (lastPoint) {
-			this.ctx.lineTo(lastPoint.x, lastPoint.y);
+			targetCtx.lineTo(lastPoint.x, lastPoint.y);
 		}
 
-		this.ctx.stroke();
-		this.ctx.restore();
+		targetCtx.stroke();
+		targetCtx.restore();
 	}
 
 	private renderGeometricShape(shape: GeometricShape, style: StrokeStyle): void {

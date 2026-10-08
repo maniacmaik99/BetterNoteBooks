@@ -47,14 +47,18 @@ export function computeTargetWidth(
 	isPen: boolean,
 	sensitivity = 2.0,
 ): number {
-	if (!isPen || pressure <= 0) {
+	if (!isPen || pressure === 0.5) {
 		return baseWidth;
 	}
 
-	const clampedPressure = Math.max(0.05, Math.min(1.0, pressure));
+	// Stylus with real pressure:
+	// If pressure drops to 0 during rapid motion while stylus is down, treat as light pressure
+	// instead of jumping to heavy baseWidth
+	const effectivePressure = pressure <= 0 ? 0.08 : pressure;
+	const clampedPressure = Math.max(0.08, Math.min(1.0, effectivePressure));
 	const dynamicFactor = Math.pow(clampedPressure, 0.85) * sensitivity;
-	const minWidth = Math.max(0.6, baseWidth * 0.25);
-	const maxWidth = baseWidth * 2.8;
+	const minWidth = Math.max(0.6, baseWidth * 0.35);
+	const maxWidth = baseWidth * 2.5;
 
 	return Math.max(minWidth, Math.min(maxWidth, baseWidth * dynamicFactor));
 }
@@ -92,9 +96,10 @@ export function computeBoundingBox(
 }
 
 /**
- * Calculates the shortest distance from point (px, py) to line segment (x1, y1)-(x2, y2).
+ * Calculates squared shortest distance from point (px, py) to line segment (x1, y1)-(x2, y2).
+ * Eliminates Math.hypot/sqrt for ultra-fast collision/hit testing.
  */
-export function distanceToSegment(
+export function distanceToSegmentSquared(
 	px: number,
 	py: number,
 	x1: number,
@@ -107,15 +112,32 @@ export function distanceToSegment(
 	const lenSq = dx * dx + dy * dy;
 
 	if (lenSq === 0) {
-		return Math.hypot(px - x1, py - y1);
+		const dpx = px - x1;
+		const dpy = py - y1;
+		return dpx * dpx + dpy * dpy;
 	}
 
-	// Projection factor t clamped to [0, 1]
 	const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
 	const projX = x1 + t * dx;
 	const projY = y1 + t * dy;
+	const dpx = px - projX;
+	const dpy = py - projY;
 
-	return Math.hypot(px - projX, py - projY);
+	return dpx * dpx + dpy * dpy;
+}
+
+/**
+ * Calculates the shortest distance from point (px, py) to line segment (x1, y1)-(x2, y2).
+ */
+export function distanceToSegment(
+	px: number,
+	py: number,
+	x1: number,
+	y1: number,
+	x2: number,
+	y2: number,
+): number {
+	return Math.sqrt(distanceToSegmentSquared(px, py, x1, y1, x2, y2));
 }
 
 /**
@@ -189,6 +211,7 @@ export function isPointNearStroke(
 	eraserRadius: number,
 ): boolean {
 	const threshold = eraserRadius + stroke.style.width / 2;
+	const thresholdSq = threshold * threshold;
 
 	// 1. Fast AABB culling
 	const bbox = stroke.bbox;
@@ -207,10 +230,13 @@ export function isPointNearStroke(
 	if (stroke.shape) {
 		const shape = stroke.shape;
 		if (shape.type === 'circle' && shape.center) {
-			const distCenter = Math.hypot(x - shape.center.x, y - shape.center.y);
+			const dx = x - shape.center.x;
+			const dy = y - shape.center.y;
+			const distCenterSq = dx * dx + dy * dy;
 			const rx = shape.radiusX ?? 30;
+			const reach = rx + threshold;
 			// Touches circumference OR inside the circle area
-			return distCenter <= rx + threshold;
+			return distCenterSq <= reach * reach;
 		} else if (shape.type === 'line') {
 			const start = shape.handles.find((h) => h.role === 'start');
 			const end = shape.handles.find((h) => h.role === 'end');
@@ -221,12 +247,12 @@ export function isPointNearStroke(
 					Math.hypot(mid.x - (start.x + end.x) / 2, mid.y - (start.y + end.y) / 2) >= 4
 				) {
 					if (
-						distanceToSegment(x, y, start.x, start.y, mid.x, mid.y) <= threshold ||
-						distanceToSegment(x, y, mid.x, mid.y, end.x, end.y) <= threshold
+						distanceToSegmentSquared(x, y, start.x, start.y, mid.x, mid.y) <= thresholdSq ||
+						distanceToSegmentSquared(x, y, mid.x, mid.y, end.x, end.y) <= thresholdSq
 					) {
 						return true;
 					}
-				} else if (distanceToSegment(x, y, start.x, start.y, end.x, end.y) <= threshold) {
+				} else if (distanceToSegmentSquared(x, y, start.x, start.y, end.x, end.y) <= thresholdSq) {
 					return true;
 				}
 			}
@@ -244,7 +270,7 @@ export function isPointNearStroke(
 				if (nextIdx === 0 && !shape.isClosed) continue;
 				const c1 = corners[i];
 				const c2 = corners[nextIdx];
-				if (c1 && c2 && distanceToSegment(x, y, c1.x, c1.y, c2.x, c2.y) <= threshold) {
+				if (c1 && c2 && distanceToSegmentSquared(x, y, c1.x, c1.y, c2.x, c2.y) <= thresholdSq) {
 					return true;
 				}
 			}
@@ -259,7 +285,9 @@ export function isPointNearStroke(
 	if (pts.length === 1) {
 		const first = pts[0];
 		if (!first) return false;
-		return Math.hypot(x - first.x, y - first.y) <= threshold;
+		const dpx = x - first.x;
+		const dpy = y - first.y;
+		return dpx * dpx + dpy * dpy <= thresholdSq;
 	}
 
 	for (let i = 0; i < pts.length - 1; i++) {
@@ -267,8 +295,7 @@ export function isPointNearStroke(
 		const p2 = pts[i + 1];
 		if (!p1 || !p2) continue;
 
-		const dist = distanceToSegment(x, y, p1.x, p1.y, p2.x, p2.y);
-		if (dist <= threshold) {
+		if (distanceToSegmentSquared(x, y, p1.x, p1.y, p2.x, p2.y) <= thresholdSq) {
 			return true;
 		}
 	}

@@ -106,6 +106,66 @@
 	color: var(--text-on-accent);
 }
 
+/* Tool Dropdown Button Group (Icon + Caret Dropdown) */
+.betternotebook-tool-dropdown-wrapper {
+	display: inline-flex;
+	align-items: center;
+	border-radius: var(--radius-m);
+	background: transparent;
+	flex-shrink: 0;
+	position: relative;
+	transition: background-color 0.15s ease;
+}
+
+.betternotebook-tool-dropdown-wrapper .betternotebook-tool-btn {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+	border-right: none;
+}
+
+.betternotebook-tool-caret-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	min-width: 14px;
+	height: 32px;
+	min-height: 32px;
+	padding: 0 1px;
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+	border-top-right-radius: var(--radius-m);
+	border-bottom-right-radius: var(--radius-m);
+	background: transparent;
+	border: 1px solid transparent;
+	border-left: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.betternotebook-tool-caret-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-tool-caret-btn.is-active {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.betternotebook-tool-caret-btn svg {
+	width: 10px;
+	height: 10px;
+	display: block;
+}
+
+.betternotebook-tool-dropdown-wrapper.is-active .betternotebook-tool-caret-btn.is-active {
+	border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 .betternotebook-toolbar-separator {
 	display: inline-block;
 	width: 1px;
@@ -351,6 +411,58 @@ button.betternotebook-add-color-btn svg {
 .betternotebook-width-dot.is-eraser {
 	border: 1.5px solid var(--text-muted, #4b5563);
 	background-color: rgba(55, 65, 81, 0.25);
+}
+
+/* Line Style Toolbar Group (Solid, Dashed, Dotted quick toggle) */
+.betternotebook-toolbar-group.line-styles {
+	gap: 2px;
+	height: 36px;
+	align-items: center;
+	display: inline-flex;
+}
+
+.betternotebook-toolbar-group.line-styles.is-hidden {
+	display: none !important;
+}
+
+.betternotebook-line-style-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 28px;
+	min-height: 28px;
+	padding: 0 7px;
+	border-radius: var(--radius-m);
+	background: transparent;
+	border: 1px solid transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: -0.5px;
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+	user-select: none;
+}
+
+.betternotebook-line-style-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.betternotebook-line-style-btn.is-active {
+	background-color: var(--background-modifier-active-hover);
+	color: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+}
+
+.betternotebook-line-style-btn.small-caret {
+	padding: 0 4px;
+	margin-left: -1px;
+}
+
+.betternotebook-line-style-btn.small-caret svg {
+	width: 14px;
+	height: 14px;
 }
 
 /* Size Adjustment Popover (Card / GoodNotes style) */
@@ -925,6 +1037,7 @@ button.betternotebook-add-color-btn svg {
 	cursor: crosshair;
 	border-radius: 3px;
 }
+
 
 /* ----------------------------------------------------
    Shape Handles Overlay
@@ -1952,6 +2065,18 @@ input.betternotebook-hidden-input,
 	color: var(--interactive-accent);
 	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 	font-weight: 600;
+}
+
+.betternotebook-lasso-seg-btn.betternotebook-line-style-btn {
+	padding: 7px 4px;
+	height: 32px;
+}
+
+.betternotebook-line-style-btn svg {
+	width: 38px;
+	height: 12px;
+	display: block;
+	pointer-events: none;
 }
 
 .betternotebook-lasso-popover-divider {

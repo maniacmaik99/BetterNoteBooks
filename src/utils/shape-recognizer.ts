@@ -1,34 +1,68 @@
 import { Point, GeometricShape, ShapeHandle, BoundingBox } from '../types';
-import { getDistance, computeBoundingBox, distanceToSegment } from './geometry';
+import { getDistance, computeBoundingBox } from './geometry';
 
 /**
  * Ramer-Douglas-Peucker algorithm for polyline simplification.
+ * Highly optimized: zero slice allocations, single-pass keep array, and squared distance math.
  */
 export function ramerDouglasPeucker(points: Point[], epsilon: number): Point[] {
 	if (points.length <= 2) return points;
 
-	let dmax = 0;
-	let index = 0;
-	const end = points.length - 1;
-	const pStart = points[0]!;
-	const pEnd = points[end]!;
+	const epsilonSq = epsilon * epsilon;
 
-	for (let i = 1; i < end; i++) {
-		const pt = points[i]!;
-		const d = distanceToSegment(pt.x, pt.y, pStart.x, pStart.y, pEnd.x, pEnd.y);
-		if (d > dmax) {
-			index = i;
-			dmax = d;
+	function rdpRecursive(startIndex: number, endIndex: number, keep: boolean[]): void {
+		if (endIndex <= startIndex + 1) return;
+
+		let dmaxSq = 0;
+		let maxIndex = 0;
+		const pStart = points[startIndex]!;
+		const pEnd = points[endIndex]!;
+		const dx = pEnd.x - pStart.x;
+		const dy = pEnd.y - pStart.y;
+		const lenSq = dx * dx + dy * dy;
+
+		for (let i = startIndex + 1; i < endIndex; i++) {
+			const pt = points[i]!;
+			let distSq: number;
+			if (lenSq === 0) {
+				const dpx = pt.x - pStart.x;
+				const dpy = pt.y - pStart.y;
+				distSq = dpx * dpx + dpy * dpy;
+			} else {
+				const t = Math.max(0, Math.min(1, ((pt.x - pStart.x) * dx + (pt.y - pStart.y) * dy) / lenSq));
+				const projX = pStart.x + t * dx;
+				const projY = pStart.y + t * dy;
+				const dpx = pt.x - projX;
+				const dpy = pt.y - projY;
+				distSq = dpx * dpx + dpy * dpy;
+			}
+
+			if (distSq > dmaxSq) {
+				maxIndex = i;
+				dmaxSq = distSq;
+			}
+		}
+
+		if (dmaxSq > epsilonSq) {
+			keep[maxIndex] = true;
+			rdpRecursive(startIndex, maxIndex, keep);
+			rdpRecursive(maxIndex, endIndex, keep);
 		}
 	}
 
-	if (dmax > epsilon) {
-		const recResults1 = ramerDouglasPeucker(points.slice(0, index + 1), epsilon);
-		const recResults2 = ramerDouglasPeucker(points.slice(index), epsilon);
-		return [...recResults1.slice(0, recResults1.length - 1), ...recResults2];
-	}
+	const keep = new Array<boolean>(points.length);
+	keep[0] = true;
+	keep[points.length - 1] = true;
 
-	return [pStart, pEnd];
+	rdpRecursive(0, points.length - 1, keep);
+
+	const result: Point[] = [];
+	for (let i = 0; i < points.length; i++) {
+		if (keep[i]) {
+			result.push(points[i]!);
+		}
+	}
+	return result;
 }
 
 /**
@@ -143,20 +177,37 @@ export function recognizeShape(points: Point[]): GeometricShape | null {
 	// 1. Straight Line / Arc Detection (Open Paths)
 	// ----------------------------------------------------
 	if (!isClosed) {
-		let maxDeviation = 0;
+		let maxDeviationSq = 0;
 		let apexPoint: Point = {
 			x: (start.x + end.x) / 2,
 			y: (start.y + end.y) / 2,
 			pressure: 0.5,
 			time: 0,
 		};
+		const cDx = end.x - start.x;
+		const cDy = end.y - start.y;
+		const cLenSq = cDx * cDx + cDy * cDy;
+
 		for (const pt of points) {
-			const d = distanceToSegment(pt.x, pt.y, start.x, start.y, end.x, end.y);
-			if (d > maxDeviation) {
-				maxDeviation = d;
+			let dSq: number;
+			if (cLenSq === 0) {
+				const dpx = pt.x - start.x;
+				const dpy = pt.y - start.y;
+				dSq = dpx * dpx + dpy * dpy;
+			} else {
+				const t = Math.max(0, Math.min(1, ((pt.x - start.x) * cDx + (pt.y - start.y) * cDy) / cLenSq));
+				const projX = start.x + t * cDx;
+				const projY = start.y + t * cDy;
+				const dpx = pt.x - projX;
+				const dpy = pt.y - projY;
+				dSq = dpx * dpx + dpy * dpy;
+			}
+			if (dSq > maxDeviationSq) {
+				maxDeviationSq = dSq;
 				apexPoint = pt;
 			}
 		}
+		const maxDeviation = Math.sqrt(maxDeviationSq);
 
 		const midX = (start.x + end.x) / 2;
 		const midY = (start.y + end.y) / 2;

@@ -248,6 +248,17 @@ export class LassoManager {
 				this.lassoPoints = [];
 				return false;
 			}
+			let minX = Infinity;
+			let minY = Infinity;
+			let maxX = -Infinity;
+			let maxY = -Infinity;
+			for (const p of this.lassoPoints) {
+				if (p.x < minX) minX = p.x;
+				if (p.y < minY) minY = p.y;
+				if (p.x > maxX) maxX = p.x;
+				if (p.y > maxY) maxY = p.y;
+			}
+			rectBounds = { minX, minY, maxX, maxY };
 		}
 
 		// Filter matching strokes

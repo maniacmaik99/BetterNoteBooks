@@ -157,6 +157,37 @@ export function isStrokeSelectedByLasso(
 	// Freehand mode (polygon ray-casting)
 	if (lassoPoints.length < 3) return false;
 
+	// Ultra-fast AABB spatial rejection before expensive polygon raycasting
+	let lMinX = rectBounds ? Math.min(rectBounds.minX, rectBounds.maxX) : Infinity;
+	let lMaxX = rectBounds ? Math.max(rectBounds.minX, rectBounds.maxX) : -Infinity;
+	let lMinY = rectBounds ? Math.min(rectBounds.minY, rectBounds.maxY) : Infinity;
+	let lMaxY = rectBounds ? Math.max(rectBounds.minY, rectBounds.maxY) : -Infinity;
+
+	if (!rectBounds) {
+		for (let i = 0; i < lassoPoints.length; i++) {
+			const lp = lassoPoints[i]!;
+			if (lp.x < lMinX) lMinX = lp.x;
+			if (lp.x > lMaxX) lMaxX = lp.x;
+			if (lp.y < lMinY) lMinY = lp.y;
+			if (lp.y > lMaxY) lMaxY = lp.y;
+		}
+	}
+
+	const sBbox =
+		stroke.bbox ||
+		(stroke.shape
+			? computeShapeBoundingBox(stroke.shape, stroke.style.width)
+			: computeBoundingBox(stroke.points, stroke.style.width));
+
+	if (
+		sBbox.maxX < lMinX ||
+		sBbox.minX > lMaxX ||
+		sBbox.maxY < lMinY ||
+		sBbox.minY > lMaxY
+	) {
+		return false;
+	}
+
 	if (stroke.shape) {
 		const shape = stroke.shape;
 		if (shape.type === 'circle' && shape.center) {
@@ -285,6 +316,30 @@ export function isImageSelectedByLasso(
 
 	// Freehand mode
 	if (lassoPoints.length < 3) return false;
+
+	let lMinX = rectBounds ? Math.min(rectBounds.minX, rectBounds.maxX) : Infinity;
+	let lMaxX = rectBounds ? Math.max(rectBounds.minX, rectBounds.maxX) : -Infinity;
+	let lMinY = rectBounds ? Math.min(rectBounds.minY, rectBounds.maxY) : Infinity;
+	let lMaxY = rectBounds ? Math.max(rectBounds.minY, rectBounds.maxY) : -Infinity;
+
+	if (!rectBounds) {
+		for (let i = 0; i < lassoPoints.length; i++) {
+			const lp = lassoPoints[i]!;
+			if (lp.x < lMinX) lMinX = lp.x;
+			if (lp.x > lMaxX) lMaxX = lp.x;
+			if (lp.y < lMinY) lMinY = lp.y;
+			if (lp.y > lMaxY) lMaxY = lp.y;
+		}
+	}
+
+	if (
+		imgMaxX < lMinX ||
+		imgMinX > lMaxX ||
+		imgMaxY < lMinY ||
+		imgMinY > lMaxY
+	) {
+		return false;
+	}
 
 	const centerIn = isPointInPolygon(lassoPoints, centerX, centerY);
 	const cornersIn = corners.filter((c) => isPointInPolygon(lassoPoints, c.x, c.y)).length;

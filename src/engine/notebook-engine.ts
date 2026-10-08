@@ -399,8 +399,10 @@ export class NotebookEngine {
 		};
 	}
 
-	public serialize(): string {
-		return JSON.stringify(this.document, null, 2);
+	public serialize(pretty = false): string {
+		return pretty
+			? JSON.stringify(this.document, null, 2)
+			: JSON.stringify(this.document);
 	}
 
 	public static deserialize(rawJson: string): NotebookDocument {

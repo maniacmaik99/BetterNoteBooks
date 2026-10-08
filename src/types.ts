@@ -151,6 +151,9 @@ export interface BetterNotebookSettings {
 	eraserMode: EraserMode;
 	eraserRadius: number;
 	defaultDashStyle: DashStyle;
+	penDashStyle?: DashStyle;
+	highlighterDashStyle?: DashStyle;
+	shapeDashStyle?: DashStyle;
 	defaultOpacity: number;
 	defaultShapeFill: boolean;
 	defaultShapeFillOpacity: number;
@@ -191,6 +194,9 @@ export const DEFAULT_SETTINGS: BetterNotebookSettings = {
 	eraserMode: 'precision',
 	eraserRadius: 16,
 	defaultDashStyle: 'solid',
+	penDashStyle: 'solid',
+	highlighterDashStyle: 'solid',
+	shapeDashStyle: 'solid',
 	defaultOpacity: 1.0,
 	defaultShapeFill: false,
 	defaultShapeFillOpacity: 0.25,
